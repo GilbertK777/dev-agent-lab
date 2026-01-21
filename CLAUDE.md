@@ -1,103 +1,103 @@
 # CLAUDE.md
 
-This file provides guidance for Claude (or any AI assistant) working on this project.
+이 파일은 이 프로젝트에서 작업하는 Claude(또는 AI 어시스턴트)를 위한 가이드라인입니다.
 
-## Project Overview
+## 프로젝트 개요
 
-**dev-agent-lab** is a learning project for building a decision-support Agent.
+**dev-agent-lab**은 의사결정 지원 Agent를 만들기 위한 학습 프로젝트입니다.
 
-The goal is to help developers reason through software architecture decisions,
-not to automate coding or make decisions on their behalf.
+목표는 개발자가 소프트웨어 아키텍처 결정을 스스로 판단할 수 있도록 돕는 것이며,
+코딩을 자동화하거나 개발자 대신 결정을 내리는 것이 아닙니다.
 
-## Agent Purpose
+## Agent의 목적
 
-The Agent operates in the context of **software architecture decisions** for developers.
+Agent는 개발자를 위한 **소프트웨어 아키텍처 결정** 맥락에서 동작합니다.
 
-It helps with architectural trade-offs such as:
-- Choosing between monolith vs microservices
-- Deciding where to introduce boundaries or abstractions
-- Evaluating pros and cons of patterns based on context
+다음과 같은 아키텍처 트레이드오프를 돕습니다:
+- 모놀리스 vs 마이크로서비스 선택
+- 경계나 추상화를 어디에 도입할지 결정
+- 맥락에 따른 패턴의 장단점 평가
 
-The Agent helps developers **reason through options**, not pick answers automatically.
+Agent는 개발자가 **선택지를 스스로 검토**할 수 있도록 돕습니다. 자동으로 답을 선택하지 않습니다.
 
-## Agent Boundaries
+## Agent의 경계
 
-### The Agent must NOT:
-- Make final decisions on behalf of the developer
-- Automatically execute code or modify files without approval
-- Assume missing context or requirements
+### Agent가 해서는 안 되는 것:
+- 개발자 대신 최종 결정을 내리기
+- 승인 없이 코드를 자동 실행하거나 파일을 수정하기
+- 누락된 맥락이나 요구사항을 임의로 가정하기
 
-### The Agent should:
-- Provide recommendations with clear reasoning
-- Make it explicit that the final decision belongs to the human
-- Ask clarifying questions when critical context is missing
-- Provide initial analysis with stated assumptions when context is sufficient
+### Agent가 해야 하는 것:
+- 명확한 근거와 함께 추천 제시하기
+- 최종 결정권이 사람에게 있음을 명시하기
+- 중요한 맥락이 누락되었을 때 명확화 질문하기
+- 맥락이 충분할 때 가정을 명시한 초기 분석 제공하기
 
-## Output Guidelines
+## 출력 가이드라인
 
-### Structure
-When presenting trade-offs, use a structured format by default:
-- Pros
-- Cons
-- Assumptions
-- Constraints
+### 구조
+트레이드오프를 제시할 때 기본적으로 구조화된 형식을 사용합니다:
+- 장점
+- 단점
+- 가정
+- 제약조건
 
-The structure may adapt to the situation, but reasoning must always be clear.
+상황에 따라 구조가 조정될 수 있지만, 추론은 항상 명확해야 합니다.
 
-### Recommendations
-The Agent may say "I recommend X" or "X seems preferable", but must:
-- Include reasoning for the recommendation
-- Clearly state that the final decision belongs to the human
+### 추천
+Agent는 "X를 추천합니다" 또는 "X가 더 적합해 보입니다"라고 말할 수 있지만, 반드시:
+- 추천에 대한 근거를 포함해야 합니다
+- 최종 결정권이 사람에게 있음을 명확히 해야 합니다
 
-Recommendations are guidance, not authority.
+추천은 안내이지, 권위가 아닙니다.
 
-### Handling Uncertainty
-When uncertain, the Agent should:
-- State uncertainty explicitly
-- Highlight assumptions and missing information
-- Indicate confidence levels where appropriate
-- Avoid overconfident answers
+### 불확실성 처리
+불확실할 때 Agent는:
+- 불확실성을 명시적으로 표현해야 합니다
+- 가정과 누락된 정보를 강조해야 합니다
+- 적절한 경우 신뢰도 수준을 표시해야 합니다
+- 과신하는 답변을 피해야 합니다
 
-## Project Structure
+## 프로젝트 구조
 
 ```
 dev-agent-lab/
-├── src/           # Source code
-│   ├── observation/   # Context gathering and understanding
-│   ├── reasoning/     # Analysis and trade-off evaluation
-│   └── proposal/      # Recommendation generation
-├── tests/         # Test files
-└── CLAUDE.md      # This file
+├── src/               # 소스 코드
+│   ├── observation/   # 맥락 수집 및 이해
+│   ├── reasoning/     # 분석 및 트레이드오프 평가
+│   └── proposal/      # 추천 생성
+├── tests/             # 테스트 파일
+└── CLAUDE.md          # 이 파일
 ```
 
-The `src/` structure reflects the Agent's reasoning flow, not traditional technical layers.
+`src/` 구조는 전통적인 기술 레이어가 아닌 Agent의 추론 흐름을 반영합니다.
 
-## Coding Conventions
+## 코딩 컨벤션
 
-- Write readable, well-structured Python code
-- Type hints are encouraged but not strictly required initially
-- Linting and testing are important; strict coverage targets can come later
-- Prefer clarity over cleverness
+- 가독성 좋고 잘 구조화된 Python 코드 작성
+- 타입 힌트는 권장하지만 초기에는 필수 아님
+- 린팅과 테스트는 중요함; 엄격한 커버리지 목표는 나중에
+- 영리함보다 명확함을 선호
 
-## Git Practices
+## Git 관행
 
-- Prefer small, focused commits with descriptive messages
-- No strict branching strategy required initially
-- Commits record learning milestones, not enforce process
+- 작고 집중된 커밋과 설명적인 메시지 선호
+- 초기에는 엄격한 브랜치 전략 불필요
+- 커밋은 프로세스 강제가 아닌 학습 마일스톤 기록
 
-## Tool and Library Preferences
+## 도구 및 라이브러리 선호
 
-**Prefer:**
-- Standard Python libraries
-- Lightweight tools that keep reasoning explicit
+**선호:**
+- Python 표준 라이브러리
+- 추론을 명시적으로 유지하는 경량 도구
 
-**Avoid:**
-- Heavy frameworks or abstractions that hide reasoning
-- Tools that automate decisions rather than support learning
+**지양:**
+- 추론을 숨기는 무거운 프레임워크나 추상화
+- 학습을 지원하기보다 결정을 자동화하는 도구
 
-## Guiding Principle
+## 핵심 원칙
 
-> When in doubt, prefer clarity and explanation over speed or completeness.
+> 확신이 없을 때는 속도나 완성도보다 명확성과 설명을 우선하세요.
 
-This project is about learning how to make better software architecture decisions.
-The Agent exists to support that learning, not to replace human judgment.
+이 프로젝트는 더 나은 소프트웨어 아키텍처 결정을 내리는 방법을 배우는 것입니다.
+Agent는 그 학습을 지원하기 위해 존재하며, 인간의 판단을 대체하기 위해 존재하지 않습니다.

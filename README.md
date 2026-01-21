@@ -1,49 +1,49 @@
 # dev-agent-lab
 
-A learning project for building a decision-support Agent.
+의사결정 지원 Agent를 만들기 위한 학습 프로젝트입니다.
 
-## Purpose
+## 목적
 
-This project explores how to build an Agent that helps developers reason through
-software architecture decisions. The focus is on structured reasoning and
-trade-off analysis, not on automating decisions.
+이 프로젝트는 개발자가 소프트웨어 아키텍처 결정을 스스로 판단할 수 있도록 돕는
+Agent를 만드는 방법을 탐구합니다. 결정을 자동화하는 것이 아니라,
+구조화된 추론과 트레이드오프 분석에 초점을 맞춥니다.
 
-## What the Agent Does
+## Agent가 하는 일
 
-- Helps evaluate architectural trade-offs (e.g., monolith vs microservices)
-- Presents options with pros, cons, assumptions, and constraints
-- Provides recommendations with clear reasoning
-- Asks clarifying questions when context is missing
+- 아키텍처 트레이드오프 평가 지원 (예: 모놀리스 vs 마이크로서비스)
+- 장점, 단점, 가정, 제약조건과 함께 선택지 제시
+- 명확한 근거와 함께 추천 제공
+- 맥락이 부족할 때 명확화 질문
 
-## What the Agent Does Not Do
+## Agent가 하지 않는 일
 
-- Make final decisions on behalf of the developer
-- Automatically execute code or modify files
-- Assume missing context or requirements
+- 개발자 대신 최종 결정 내리기
+- 코드 자동 실행 또는 파일 수정
+- 누락된 맥락이나 요구사항 임의로 가정
 
-## Project Structure
+## 프로젝트 구조
 
 ```
 dev-agent-lab/
 ├── src/
-│   ├── observation/   # Context gathering
-│   ├── reasoning/     # Trade-off analysis
-│   └── proposal/      # Recommendation generation
+│   ├── observation/   # 맥락 수집
+│   ├── reasoning/     # 트레이드오프 분석
+│   └── proposal/      # 추천 생성
 ├── tests/
-├── CLAUDE.md          # AI assistant guidelines
+├── CLAUDE.md          # AI 어시스턴트 가이드라인
 └── README.md
 ```
 
-## Tech Stack
+## 기술 스택
 
 - Python
-- Standard libraries preferred
-- Focus on clarity over frameworks
+- 표준 라이브러리 선호
+- 프레임워크보다 명확성에 집중
 
-## Guiding Principle
+## 핵심 원칙
 
-> When in doubt, prefer clarity and explanation over speed or completeness.
+> 확신이 없을 때는 속도나 완성도보다 명확성과 설명을 우선하세요.
 
-## License
+## 라이선스
 
-TBD
+추후 결정

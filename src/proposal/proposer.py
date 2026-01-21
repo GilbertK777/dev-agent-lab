@@ -54,9 +54,9 @@ def propose(observation: Observation, analysis: Analysis) -> Proposal:
     # 다음 고려사항
     next_considerations: list[str] = []
 
-    # 불명확한 점을 다음 고려사항에 포함
-    for unclear in observation.unclear_points:
-        next_considerations.append(f"확인 필요: {unclear}")
+    # 미확인 정보를 다음 고려사항에 포함
+    for unknown in observation.unknowns:
+        next_considerations.append(f"확인 필요: {unknown}")
 
     # 기본 다음 단계 제안
     next_considerations.append("팀과 함께 트레이드오프를 논의해 보세요.")

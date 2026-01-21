@@ -49,10 +49,10 @@ def reason(observation: Observation) -> Analysis:
         # 가정: 분석의 전제 조건
         assumptions.append("현재 제공된 정보가 의사결정에 충분하다고 가정합니다.")
 
-    # 불명확한 점이 있으면 추가 분석
-    if observation.unclear_points:
-        cons.append("불명확한 부분이 있어 추가 확인이 필요합니다.")
-        assumptions.append("불명확한 부분은 추후 명확해질 것으로 가정합니다.")
+    # 미확인 정보가 있으면 추가 분석
+    if observation.unknowns:
+        cons.append("미확인 정보가 있어 추가 확인이 필요합니다.")
+        assumptions.append("미확인 정보는 추후 확인될 것으로 가정합니다.")
 
     # 제약이 없으면 기본 제약 추가
     if not constraints:

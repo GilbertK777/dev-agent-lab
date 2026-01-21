@@ -88,3 +88,37 @@ class TestHumanDecisionPolicy:
         assert "인간" in proposal.human_decision_note or "사람" in proposal.human_decision_note, (
             "human_decision_note에 인간/사람이 결정한다는 내용이 포함되어야 합니다"
         )
+
+
+class TestObservationConstraintExtractionPolicy:
+    """관찰 단계 제약 추출 정책 테스트 (v1.1)"""
+
+    def test_observation_extracts_team_size_with_number(self) -> None:
+        """팀 규모 정보가 인원수와 함께 제약 조건으로 추출되어야 합니다."""
+        observation = observe("팀은 3명이고 출시까지는 2개월 정도 남았는데, 요구사항 변경이 많음")
+
+        # 인력 관련 제약이 포함되어 있는지 확인 (숫자 3 포함)
+        has_team_constraint = any(
+            "인력" in constraint and "3" in constraint
+            for constraint in observation.constraints
+        )
+
+        assert has_team_constraint, (
+            f"Observation의 constraints에 인력(팀 규모) 관련 제약과 '3명'이 포함되어야 합니다. "
+            f"현재 constraints: {observation.constraints}"
+        )
+
+    def test_observation_extracts_timeline_with_duration(self) -> None:
+        """일정 정보가 기간과 함께 제약 조건으로 추출되어야 합니다."""
+        observation = observe("팀은 3명이고 출시까지는 2개월 정도 남았는데, 요구사항 변경이 많음")
+
+        # 일정 관련 제약이 포함되어 있는지 확인 (숫자 2와 개월 포함)
+        has_timeline_constraint = any(
+            "일정" in constraint and "2" in constraint and "개월" in constraint
+            for constraint in observation.constraints
+        )
+
+        assert has_timeline_constraint, (
+            f"Observation의 constraints에 일정 관련 제약과 '2개월'이 포함되어야 합니다. "
+            f"현재 constraints: {observation.constraints}"
+        )

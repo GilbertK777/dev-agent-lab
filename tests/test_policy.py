@@ -1,0 +1,90 @@
+"""
+정책 테스트 (Policy Tests)
+
+이 테스트는 "정답"이 아니라 "행동 규칙"을 검증합니다.
+Agent가 반드시 지켜야 할 정책을 확인합니다.
+"""
+
+import sys
+from pathlib import Path
+
+# src 모듈을 import할 수 있도록 경로 추가
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.observation.observer import observe
+from src.reasoning.reasoner import reason
+from src.proposal.proposer import propose
+from src.main import format_output
+
+
+class TestOutputStructurePolicy:
+    """출력 구조 정책 테스트"""
+
+    def test_output_contains_pros_section(self) -> None:
+        """출력에 Pros(장점) 섹션이 포함되어야 합니다."""
+        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(observation)
+        proposal = propose(observation, analysis)
+        output = format_output(observation, analysis, proposal)
+
+        assert "Pros" in output, "출력에 'Pros' 섹션이 포함되어야 합니다"
+
+    def test_output_contains_cons_section(self) -> None:
+        """출력에 Cons(단점) 섹션이 포함되어야 합니다."""
+        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(observation)
+        proposal = propose(observation, analysis)
+        output = format_output(observation, analysis, proposal)
+
+        assert "Cons" in output, "출력에 'Cons' 섹션이 포함되어야 합니다"
+
+    def test_output_contains_assumptions_section(self) -> None:
+        """출력에 Assumptions(가정) 섹션이 포함되어야 합니다."""
+        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(observation)
+        proposal = propose(observation, analysis)
+        output = format_output(observation, analysis, proposal)
+
+        assert "Assumptions" in output, "출력에 'Assumptions' 섹션이 포함되어야 합니다"
+
+    def test_output_contains_constraints_section(self) -> None:
+        """출력에 Constraints(제약) 섹션이 포함되어야 합니다."""
+        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(observation)
+        proposal = propose(observation, analysis)
+        output = format_output(observation, analysis, proposal)
+
+        assert "Constraints" in output, "출력에 'Constraints' 섹션이 포함되어야 합니다"
+
+
+class TestHumanDecisionPolicy:
+    """인간 결정 정책 테스트"""
+
+    def test_output_states_human_makes_final_decision(self) -> None:
+        """출력에 '최종 결정은 인간이 한다'는 의미의 문장이 포함되어야 합니다."""
+        observation = observe("어떤 아키텍처를 선택해야 할까요?")
+        analysis = reason(observation)
+        proposal = propose(observation, analysis)
+        output = format_output(observation, analysis, proposal)
+
+        # 인간이 결정한다는 표현이 포함되어 있는지 확인
+        human_decision_keywords = ["최종 결정은 인간", "인간이 내려야", "사람이 결정"]
+        has_human_decision_statement = any(
+            keyword in output for keyword in human_decision_keywords
+        )
+
+        assert has_human_decision_statement, (
+            "출력에 '최종 결정은 인간이 한다'는 의미의 문장이 포함되어야 합니다. "
+            f"현재 출력에서 다음 키워드를 찾지 못했습니다: {human_decision_keywords}"
+        )
+
+    def test_proposal_always_includes_human_decision_note(self) -> None:
+        """제안에는 항상 인간 결정 안내가 포함되어야 합니다."""
+        observation = observe("테스트 입력")
+        analysis = reason(observation)
+        proposal = propose(observation, analysis)
+
+        assert proposal.human_decision_note, "제안에 human_decision_note가 비어있으면 안 됩니다"
+        assert "인간" in proposal.human_decision_note or "사람" in proposal.human_decision_note, (
+            "human_decision_note에 인간/사람이 결정한다는 내용이 포함되어야 합니다"
+        )

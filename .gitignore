@@ -1,0 +1,15 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Test cache
+.pytest_cache/
+
+# Type checking cache
+.mypy_cache/
+
+# Linter cache
+.ruff_cache/

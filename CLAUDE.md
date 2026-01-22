@@ -62,42 +62,59 @@ Agent는 "X를 추천합니다" 또는 "X가 더 적합해 보입니다"라고 �
 
 ```
 dev-agent-lab/
-├── src/               # 소스 코드
-│   ├── observation/   # 맥락 수집 및 이해
-│   ├── reasoning/     # 분석 및 트레이드오프 평가
-│   └── proposal/      # 추천 생성
-├── tests/             # 테스트 파일
-└── CLAUDE.md          # 이 파일
+├── CLAUDE.md                          # AI 어시스턴트 가이드라인
+├── README.md                          # 프로젝트 문서
+├── test.py                            # JSON 기반 테스트 러너
+│
+├── src/
+│   ├── main.py                        # CLI 진입점 및 출력 포맷터
+│   │
+│   ├── observation/                   # 관찰 단계 (v2 파이프라인)
+│   │   ├── __init__.py
+│   │   ├── normalizer.py              # 보존적 텍스트 정규화 (Lossless)
+│   │   ├── observer.py                # 관찰 파이프라인 조율
+│   │   ├── schema.py                  # ObservationResult 스키마
+│   │   └── extractors/                # 정보 추출기
+│   │       ├── __init__.py
+│   │       ├── base.py                # BaseExtractor 추상 클래스
+│   │       ├── deadline_extractor.py  # 일정/기간 추출 (문장 스캔 + 합산)
+│   │       └── team_extractor.py      # 팀 인원 추출 (단일값/범위)
+│   │
+│   ├── reasoning/                     # 판단 단계
+│   │   ├── __init__.py
+│   │   └── reasoner.py                # 트레이드오프 분석
+│   │
+│   └── proposal/                      # 제안 단계
+│       ├── __init__.py
+│       └── proposer.py                # 추천 및 다음 고려사항 생성
+│
+└── tests/
+    ├── test_observer_v2.py            # Observer v2 유닛 테스트 (39개)
+    ├── test_policy.py                 # 정책 통합 테스트
+    └── fixtures/
+        ├── test_inputs.json           # 테스트 입력 데이터
+        └── test_results.json          # 테스트 실행 결과
 ```
 
-`src/` 구조는 전통적인 기술 레이어가 아닌 Agent의 추론 흐름을 반영합니다.
+### 핵심 파이프라인
 
-## 코딩 컨벤션
+```
+사용자 입력 → Normalizer → Extractors → Observer → Reasoner → Proposer → 출력
+                 │              │
+                 │              ├── DeadlineExtractor (일정)
+                 │              └── TeamExtractor (인원)
+                 │
+                 └── Lossless 정규화 (형태 정리, 의미 보존)
+```
 
-- 가독성 좋고 잘 구조화된 Python 코드 작성
-- 타입 힌트는 권장하지만 초기에는 필수 아님
-- 린팅과 테스트는 중요함; 엄격한 커버리지 목표는 나중에
-- 영리함보다 명확함을 선호
+### 주요 모듈 설명
 
-## Git 관행
+| 모듈 | 역할 |
+|------|------|
+| `normalizer.py` | 텍스트 형태 정리 (공백, 숫자-단위 분리). 단어 치환 금지. |
+| `deadline_extractor.py` | 년/월/주/일 개별 스캔 후 합산. "1 year and 3 months" → 455일 |
+| `team_extractor.py` | 단일값(5명) 또는 범위(2~3명) 추출 |
+| `observer.py` | 추출기 결과 통합, unknowns 자동 생성, ambiguity 점수 계산 |
+| `reasoner.py` | Pros/Cons/Assumptions/Constraints 분석 |
+| `proposer.py` | 추천, 근거, 다음 고려사항, 인간 결정 안내 생성 |
 
-- 작고 집중된 커밋과 설명적인 메시지 선호
-- 초기에는 엄격한 브랜치 전략 불필요
-- 커밋은 프로세스 강제가 아닌 학습 마일스톤 기록
-
-## 도구 및 라이브러리 선호
-
-**선호:**
-- Python 표준 라이브러리
-- 추론을 명시적으로 유지하는 경량 도구
-
-**지양:**
-- 추론을 숨기는 무거운 프레임워크나 추상화
-- 학습을 지원하기보다 결정을 자동화하는 도구
-
-## 핵심 원칙
-
-> 확신이 없을 때는 속도나 완성도보다 명확성과 설명을 우선하세요.
-
-이 프로젝트는 더 나은 소프트웨어 아키텍처 결정을 내리는 방법을 배우는 것입니다.
-Agent는 그 학습을 지원하기 위해 존재하며, 인간의 판단을 대체하기 위해 존재하지 않습니다.

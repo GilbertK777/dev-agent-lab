@@ -1,0 +1,211 @@
+{
+  "metadata": {
+    "input_file": "/home/kimsh/projects/dev-agent-lab/tests/fixtures/test_inputs.json",
+    "output_file": "/home/kimsh/projects/dev-agent-lab/tests/fixtures/test_results.json",
+    "timestamp": "2026-01-22T15:37:18.664515",
+    "total_tests": 3
+  },
+  "results": [
+    {
+      "id": "test_1",
+      "name": "반도체 장비 제어 소프트웨어",
+      "input": "이번 프로젝트는 반도체 장비 제어 소프트웨어입니다.\n팀은 3명 정도이고 기간은 about 6 months 정도 생각하고 있습니다.\nMust have 기능은 Motion control, TCP/IP communication 이고\nNice to have 로는 logging, monitoring UI 가 있으면 좋겠습니다.\nPlatform은 Windows 기반이고 Python, C# 혼용을 고려 중입니다.",
+      "expected": {
+        "team_size": 3,
+        "deadline_days": 180,
+        "must_have": [
+          "Motion control",
+          "TCP/IP communication"
+        ],
+        "nice_to_have": [
+          "logging",
+          "monitoring UI"
+        ],
+        "platform": "Windows",
+        "language_stack": [
+          "Python",
+          "C#"
+        ]
+      },
+      "actual": {
+        "team_size": 3,
+        "team_size_min": null,
+        "team_size_max": null,
+        "deadline_days": 180,
+        "ambiguity_score": 0,
+        "lang_mix_ratio": 0.5838150289017341,
+        "tokens_estimate": 43,
+        "must_have": [
+          "Motion control",
+          "TCP/IP communication"
+        ],
+        "nice_to_have": [
+          "logging",
+          "monitoring UI"
+        ],
+        "unknowns": [],
+        "extractions": [
+          {
+            "extractor": "deadline",
+            "value": 180,
+            "confidence": 0.85,
+            "evidence": "6 months"
+          },
+          {
+            "extractor": "team_size",
+            "value": 3,
+            "confidence": 1.0,
+            "evidence": "팀은 3명"
+          },
+          {
+            "extractor": "requirements",
+            "value": {
+              "must_have": [
+                "Motion control",
+                "TCP/IP communication"
+              ],
+              "nice_to_have": [
+                "logging",
+                "monitoring UI"
+              ],
+              "must_have_evidence": "Must have 기능은 Motion control, TCP/IP communication 이고",
+              "nice_to_have_evidence": "Nice to have 로는 logging, monitoring UI 가 있으면"
+            },
+            "confidence": 0.9,
+            "evidence": "must_have: Must have 기능은 Motion control, TCP/IP communication 이고 | nice_to_have: Nice to have 로는 logging, monitoring UI 가 있으면"
+          }
+        ]
+      }
+    },
+    {
+      "id": "test_2",
+      "name": "Automation system (모호한 입력)",
+      "input": "We are planning a small automation system.\n인원은 2~3명 정도로 flexible 하고,\n기간은 1년 이내면 좋겠습니다 (maybe shorter).\n요구사항은 아직 evolving 중이고\n추후 scope change 가능성이 큽니다.\nBudget은 tight 합니다.",
+      "expected": {
+        "team_size_range": [
+          2,
+          3
+        ],
+        "deadline_days": 365,
+        "ambiguity_high": true,
+        "uncertainty_keywords": [
+          "flexible",
+          "maybe",
+          "evolving"
+        ]
+      },
+      "actual": {
+        "team_size": null,
+        "team_size_min": 2,
+        "team_size_max": 3,
+        "deadline_days": 365,
+        "ambiguity_score": 30,
+        "lang_mix_ratio": 0.6589147286821705,
+        "tokens_estimate": 31,
+        "must_have": [
+          "We are planning a small automation system",
+          "인원은 2~3명 정도로 flexible 하고,",
+          "기간은 1년 이내면 좋겠습니다 (maybe shorter)",
+          "요구사항은 아직 evolving 중이고",
+          "추후 scope change 가능성이 큽니다",
+          "Budget은 tight 합니다"
+        ],
+        "nice_to_have": [],
+        "unknowns": [
+          {
+            "question": "팀 규모를 2명으로 확정할지 3명으로 확정할지 결정되어 있나요?",
+            "reason": "인원 확정에 따라 일정/범위/역할 분담이 달라집니다.",
+            "evidence": "인원은 2~3명"
+          }
+        ],
+        "extractions": [
+          {
+            "extractor": "deadline",
+            "value": 365,
+            "confidence": 0.85,
+            "evidence": "1년"
+          },
+          {
+            "extractor": "team_size",
+            "value": {
+              "min": 2,
+              "max": 3
+            },
+            "confidence": 1.0,
+            "evidence": "인원은 2~3명"
+          }
+        ]
+      }
+    },
+    {
+      "id": "test_3",
+      "name": "Decision-support agent",
+      "input": "This is a decision-support agent development project.\nTeam size will be 4 people.\nThe expected timeline is 1 year and 3 months.\nCore requirement is rule-based analysis (LLM is forbidden).\nNice features include reporting dashboard and export 기능.\nTarget environment is Linux (WSL) and Python only.",
+      "expected": {
+        "team_size": 4,
+        "deadline_days": 455,
+        "must_have": [
+          "rule-based analysis"
+        ],
+        "forbidden": [
+          "LLM"
+        ],
+        "nice_to_have": [
+          "reporting dashboard",
+          "export"
+        ],
+        "platform": "Linux",
+        "language_stack": [
+          "Python"
+        ]
+      },
+      "actual": {
+        "team_size": 4,
+        "team_size_min": null,
+        "team_size_max": null,
+        "deadline_days": 455,
+        "ambiguity_score": 0,
+        "lang_mix_ratio": 0.9914893617021276,
+        "tokens_estimate": 48,
+        "must_have": [
+          "rule-based analysis"
+        ],
+        "nice_to_have": [
+          "reporting dashboard",
+          "export 기능"
+        ],
+        "unknowns": [],
+        "extractions": [
+          {
+            "extractor": "deadline",
+            "value": 455,
+            "confidence": 0.95,
+            "evidence": "1 year + 3 months"
+          },
+          {
+            "extractor": "team_size",
+            "value": 4,
+            "confidence": 1.0,
+            "evidence": "Team size will be 4"
+          },
+          {
+            "extractor": "requirements",
+            "value": {
+              "must_have": [
+                "rule-based analysis"
+              ],
+              "nice_to_have": [
+                "reporting dashboard",
+                "export 기능"
+              ],
+              "must_have_evidence": "Core requirement is rule-based analysis (LLM is forbidden).",
+              "nice_to_have_evidence": "Nice features include reporting dashboard and export 기능."
+            },
+            "confidence": 0.9,
+            "evidence": "must_have: Core requirement is rule-based analysis (LLM is forbidden). | nice_to_have: Nice features include reporting dashboard and export 기능."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -450,3 +450,147 @@ Nice features include reporting dashboard and export 기능."""
 
         assert "API 연동" in result.must_have
         assert "데이터 저장" in result.must_have
+
+
+class TestPlatformExtraction:
+    """플랫폼 추출 테스트 (STEP 2)"""
+
+    def test_platform_windows_korean(self):
+        """test_1: Platform은 Windows 기반"""
+        input_text = """Platform은 Windows 기반이고 Python, C# 혼용을 고려 중입니다."""
+
+        result = observe_v2(input_text)
+        assert result.platform == "Windows"
+
+    def test_platform_linux_wsl(self):
+        """test_3: Target environment is Linux (WSL)"""
+        input_text = """Target environment is Linux (WSL) and Python only."""
+
+        result = observe_v2(input_text)
+        assert result.platform == "Linux"
+
+    def test_platform_macos(self):
+        """macOS 플랫폼 추출"""
+        input_text = """개발 환경은 macOS 기반입니다."""
+
+        result = observe_v2(input_text)
+        assert result.platform == "macOS"
+
+    def test_platform_ubuntu(self):
+        """Ubuntu는 Linux로 매핑"""
+        input_text = """서버는 Ubuntu 환경에서 동작합니다."""
+
+        result = observe_v2(input_text)
+        assert result.platform == "Linux"
+
+
+class TestStackExtraction:
+    """기술 스택 추출 테스트 (STEP 2)"""
+
+    def test_stack_python_csharp(self):
+        """test_1: Python, C# 혼용"""
+        input_text = """Platform은 Windows 기반이고 Python, C# 혼용을 고려 중입니다."""
+
+        result = observe_v2(input_text)
+        assert "Python" in result.language_stack
+        assert "C#" in result.language_stack
+
+    def test_stack_python_only(self):
+        """test_3: Python only"""
+        input_text = """Target environment is Linux (WSL) and Python only."""
+
+        result = observe_v2(input_text)
+        assert "Python" in result.language_stack
+        assert len(result.language_stack) == 1
+
+    def test_stack_multiple_languages(self):
+        """여러 언어 추출"""
+        input_text = """기술 스택: Java, TypeScript, Go"""
+
+        result = observe_v2(input_text)
+        assert "Java" in result.language_stack
+        assert "TypeScript" in result.language_stack
+        assert "Go" in result.language_stack
+
+    def test_stack_javascript_nodejs(self):
+        """JavaScript와 Node.js 추출"""
+        input_text = """프론트엔드는 JavaScript, 백엔드는 Node.js 사용"""
+
+        result = observe_v2(input_text)
+        assert "JavaScript" in result.language_stack
+        assert "Node.js" in result.language_stack
+
+    def test_stack_korean_keywords(self):
+        """한글 키워드 추출"""
+        input_text = """파이썬과 자바를 사용합니다."""
+
+        result = observe_v2(input_text)
+        assert "Python" in result.language_stack
+        assert "Java" in result.language_stack
+
+
+class TestForbiddenExtraction:
+    """금지 사항 추출 테스트 (STEP 2)"""
+
+    def test_forbidden_llm_english(self):
+        """test_3: LLM is forbidden"""
+        input_text = """Core requirement is rule-based analysis (LLM is forbidden)."""
+
+        result = observe_v2(input_text)
+        assert "LLM" in result.forbidden
+
+    def test_forbidden_korean(self):
+        """한글 금지 표현"""
+        input_text = """외부 API 금지, 클라우드 사용 불가"""
+
+        result = observe_v2(input_text)
+        assert len(result.forbidden) >= 1
+
+    def test_forbidden_not_allowed(self):
+        """not allowed 표현"""
+        input_text = """GPT is not allowed in this project."""
+
+        result = observe_v2(input_text)
+        assert "GPT" in result.forbidden
+
+    def test_no_forbidden_when_not_present(self):
+        """금지 사항 없으면 빈 리스트"""
+        input_text = """인원은 5명, 기간은 3개월입니다."""
+
+        result = observe_v2(input_text)
+        assert result.forbidden == []
+
+
+class TestFullScenarioStep2:
+    """전체 시나리오 테스트 - STEP 2 필드 검증"""
+
+    def test_scenario_1_platform_stack(self):
+        """test_1: platform=Windows, stack=[Python, C#]"""
+        input_text = """이번 프로젝트는 반도체 장비 제어 소프트웨어입니다.
+팀은 3명 정도이고 기간은 about 6 months 정도 생각하고 있습니다.
+Must have 기능은 Motion control, TCP/IP communication 이고
+Nice to have 로는 logging, monitoring UI 가 있으면 좋겠습니다.
+Platform은 Windows 기반이고 Python, C# 혼용을 고려 중입니다."""
+
+        result = observe_v2(input_text)
+
+        # STEP 2 검증
+        assert result.platform == "Windows"
+        assert "Python" in result.language_stack
+        assert "C#" in result.language_stack
+
+    def test_scenario_3_platform_stack_forbidden(self):
+        """test_3: platform=Linux, stack=[Python], forbidden=[LLM]"""
+        input_text = """This is a decision-support agent development project.
+Team size will be 4 people.
+The expected timeline is 1 year and 3 months.
+Core requirement is rule-based analysis (LLM is forbidden).
+Nice features include reporting dashboard and export 기능.
+Target environment is Linux (WSL) and Python only."""
+
+        result = observe_v2(input_text)
+
+        # STEP 2 검증
+        assert result.platform == "Linux"
+        assert "Python" in result.language_stack
+        assert "LLM" in result.forbidden

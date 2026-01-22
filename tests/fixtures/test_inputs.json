@@ -37,6 +37,33 @@
         "platform": "Linux",
         "language_stack": ["Python"]
       }
+    },
+    {
+      "id": "test_4",
+      "name": "Semiconductor equipment control + monitoring (복합·엄격 요구사항)",
+      "input": "We are building a semiconductor equipment control SW + monitoring dashboard.\nTeam size: 2~4 engineers (HW interface dev + UI dev), but ideally 3.\nTimeline: within 9 months (prefer 6 months). Start is next month.\nMust have: Motion control, TCP/IP communication, SECS/GEM integration, recipe management, alarm handling.\nNice to have: MES interface, remote diagnostics, automated report generation, multilingual UI (Korean/English).\nConstraints:\n- Target OS: Windows 10/11 on factory PCs, 일부는 WSL2 기반 dev 환경.\n- Language stack: Python + C# (WPF), 일부 low-level은 C++ 고려.\n- LLM usage is forbidden for production runtime (security policy), but allowed for offline tooling.\n- Budget is tight, scope change is likely, and requirements are still evolving.\n- Must comply with internal security: no internet access on production machines.\nPlease propose what to clarify first and what trade-offs to consider.",
+      "expected": {
+        "team_size_range": [2, 4],
+        "deadline_days": 270,
+        "must_have": [
+          "Motion control",
+          "TCP/IP communication",
+          "SECS/GEM integration",
+          "recipe management",
+          "alarm handling"
+        ],
+        "nice_to_have": [
+          "MES interface",
+          "remote diagnostics",
+          "automated report generation",
+          "multilingual UI"
+        ],
+        "platform": "Windows",
+        "language_stack": ["Python", "C#", "C++"],
+        "forbidden": ["LLM"],
+        "ambiguity_high": true,
+        "uncertainty_keywords": ["within", "prefer", "tight", "evolving", "scope change"]
+      }
     }
   ]
 }

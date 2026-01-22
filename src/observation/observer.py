@@ -20,6 +20,9 @@ from src.observation.normalizer import normalize, NormalizeResult
 from src.observation.extractors.deadline_extractor import DeadlineExtractor
 from src.observation.extractors.team_extractor import TeamSizeExtractor
 from src.observation.extractors.requirements_extractor import RequirementsExtractor, RequirementsResult
+from src.observation.extractors.platform_extractor import PlatformExtractor
+from src.observation.extractors.stack_extractor import StackExtractor
+from src.observation.extractors.forbidden_extractor import ForbiddenExtractor
 
 
 # === Legacy Observation (하위 호환용) ===
@@ -43,6 +46,9 @@ EXTRACTORS = [
     DeadlineExtractor(),
     TeamSizeExtractor(),
     RequirementsExtractor(),
+    PlatformExtractor(),
+    StackExtractor(),
+    ForbiddenExtractor(),
 ]
 
 
@@ -203,6 +209,9 @@ def observe_v2(user_input: str) -> ObservationResult:
     team_range_evidence: str = ""
     must_have: list[str] = []
     nice_to_have: list[str] = []
+    platform: Optional[str] = None
+    language_stack: list[str] = []
+    forbidden: list[str] = []
 
     for extraction in extractions:
         if extraction.extractor == "deadline":
@@ -222,6 +231,12 @@ def observe_v2(user_input: str) -> ObservationResult:
             if isinstance(extraction.value, RequirementsResult):
                 must_have = extraction.value.must_have
                 nice_to_have = extraction.value.nice_to_have
+        elif extraction.extractor == "platform":
+            platform = extraction.value
+        elif extraction.extractor == "stack":
+            language_stack = extraction.value if isinstance(extraction.value, list) else [extraction.value]
+        elif extraction.extractor == "forbidden":
+            forbidden = extraction.value if isinstance(extraction.value, list) else [extraction.value]
 
     # 4. Validate & Generate Unknowns
     unknowns = _generate_unknowns(
@@ -251,6 +266,9 @@ def observe_v2(user_input: str) -> ObservationResult:
         team_size_max=team_size_max,
         must_have=must_have,
         nice_to_have=nice_to_have,
+        platform=platform,
+        language_stack=language_stack,
+        forbidden=forbidden,
         ambiguity_score=ambiguity_score,
         unknowns=unknowns,
         extractions=extractions,

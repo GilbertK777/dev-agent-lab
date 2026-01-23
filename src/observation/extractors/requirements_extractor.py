@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.observation.extractors.base import BaseExtractor, ExtractResult
-from src.observation.extractors.utils import format_evidence
+from src.observation.extractors.utils import format_evidence, truncate_at_word_boundary
 
 
 @dataclass
@@ -42,14 +42,17 @@ class RequirementsExtractor(BaseExtractor):
     name = "requirements"
 
     # 섹션 종료 키워드 (이후 내용은 캡처하지 않음)
+    # 주의: 정규화 후 개행이 공백으로 바뀌므로 \s 패턴 사용
     SECTION_TERMINATORS = [
-        r'\n\s*-\s',  # bullet point
-        r'\nConstraints?:',
-        r'\nNice\s+to\s+have:',
-        r'\nMust\s+have:',
-        r'\n제약',
-        r'\n선택',
-        r'\n필수',
+        r'(?:\n|\s)Constraints?:',
+        r'(?:\n|\s)Nice\s+to\s+have:',
+        r'(?:\n|\s)Must\s+have:',
+        r'(?:\n|\s)제약',
+        r'(?:\n|\s)선택',
+        r'(?:\n|\s)필수',
+        r'(?:\n|\s)Ask:',
+        r'(?:\n|\s)Timeline',
+        r'(?:\n|\s)Team',
     ]
 
     # === Must Have 시작 패턴 ===
@@ -78,21 +81,24 @@ class RequirementsExtractor(BaseExtractor):
         re.compile(r'[Nn]ice\s+features?\s+include[s]?', re.IGNORECASE),
         # "Optional:" 형식
         re.compile(r'[Oo]ptional\s*[:：]', re.IGNORECASE),
-        # "있으면 좋은 기능" 형식
-        re.compile(r'있으면\s*좋[은겠]?\s*(?:기능)?[은는]?\s*[:：]?', re.IGNORECASE),
+        # "있으면 좋은 기능" 형식 (반드시 "기능" 또는 콜론 필요)
+        re.compile(r'있으면\s*좋[은겠]?\s*기능[은는]?\s*[:：]?', re.IGNORECASE),
         # "선택 기능:" 형식
         re.compile(r'선택(?:\s*기능)?[은는]?\s*[:：]?', re.IGNORECASE),
     ]
 
     # === 항목 분리 패턴 ===
+    # bullet point (\n- 또는 정규화된 " - "), 콤마, and, 및 등으로 분리
+    # 주의: " - " 패턴은 단어 경계에서만 분리 (SECS-GEM 같은 하이픈 용어 보존)
     ITEM_SPLIT_PATTERN = re.compile(
-        r'\s*(?:,|、|，|\s+and\s+|\s+및\s+|\s+이고\s*|\s+하고\s*)\s*',
+        r'\s*(?:\n\s*-\s*|\s+-\s+|,|、|，|\s+and\s+|\s+및\s+|\s+이고\s*|\s+하고\s*)\s*',
         re.IGNORECASE
     )
 
     # === 항목 종료 패턴 (라인 내) ===
+    # "가 있으면", "이 있으면" 등 종료 조건
     ITEM_END_PATTERN = re.compile(
-        r'(?:\s+이고|\s+하고|입니다|가\s*있으면|있으면\s*좋겠습니다|\.(?:\s|$)|\n)',
+        r'(?:\s+이고(?:\s|$)|\s+하고(?:\s|$)|입니다|[가이]\s*있으면|있으면\s*좋겠습니다|\.(?:\s|$))',
         re.IGNORECASE
     )
 
@@ -151,48 +157,70 @@ class RequirementsExtractor(BaseExtractor):
     ) -> tuple[list[str], str]:
         """
         섹션 시작 패턴을 찾고, 섹션 종료 조건까지의 내용을 추출한다.
+        여러 섹션이 있으면 모두 수집한다 (예: "Must have:" + "필수 기능:")
 
         Returns:
             (items_list, evidence_string)
         """
+        all_items: list[str] = []
+        all_evidence: list[str] = []
+
         for starter in starters:
-            match = starter.search(text)
-            if not match:
-                continue
+            # 모든 매칭을 찾음 (finditer)
+            for match in starter.finditer(text):
+                start_pos = match.end()
+                section_start = match.group(0)
 
-            start_pos = match.end()
-            section_start = match.group(0)
+                # 섹션 종료 위치 찾기
+                end_pos = len(text)
 
-            # 섹션 종료 위치 찾기
-            end_pos = len(text)
+                # 1. 섹션 종료 키워드 확인
+                for terminator in self.SECTION_TERMINATORS:
+                    term_match = re.search(terminator, text[start_pos:], re.IGNORECASE)
+                    if term_match:
+                        candidate_end = start_pos + term_match.start()
+                        if candidate_end < end_pos:
+                            end_pos = candidate_end
 
-            # 1. 섹션 종료 키워드 확인
-            for terminator in self.SECTION_TERMINATORS:
-                term_match = re.search(terminator, text[start_pos:], re.IGNORECASE)
-                if term_match:
-                    candidate_end = start_pos + term_match.start()
-                    if candidate_end < end_pos:
-                        end_pos = candidate_end
+                # 2. 다른 섹션 시작 키워드 확인
+                for exclude_starter in exclude_starters:
+                    exclude_match = exclude_starter.search(text[start_pos:])
+                    if exclude_match:
+                        candidate_end = start_pos + exclude_match.start()
+                        if candidate_end < end_pos:
+                            end_pos = candidate_end
 
-            # 2. 다른 섹션 시작 키워드 확인 (Nice to have가 Must have 내용에 포함되지 않도록)
-            for exclude_starter in exclude_starters:
-                exclude_match = exclude_starter.search(text[start_pos:])
-                if exclude_match:
-                    candidate_end = start_pos + exclude_match.start()
-                    if candidate_end < end_pos:
-                        end_pos = candidate_end
+                # 3. 같은 타입의 다른 섹션 시작 확인 (중복 방지)
+                for other_starter in starters:
+                    if other_starter != starter:
+                        other_match = other_starter.search(text[start_pos:])
+                        if other_match:
+                            candidate_end = start_pos + other_match.start()
+                            if candidate_end < end_pos:
+                                end_pos = candidate_end
 
-            # 3. 라인 내 종료 패턴 확인 (마침표, "이고" 등)
-            section_text = text[start_pos:end_pos]
-            end_match = self.ITEM_END_PATTERN.search(section_text)
-            if end_match:
-                section_text = section_text[:end_match.start()]
+                section_text = text[start_pos:end_pos]
 
-            # 항목 추출
-            items = self._split_items(section_text)
-            if items:
-                evidence = format_evidence(section_start + section_text.strip())
-                return items, evidence
+                # 라인 내 종료 패턴 확인 (마침표, "가 있으면" 등)
+                end_match = self.ITEM_END_PATTERN.search(section_text)
+                if end_match:
+                    section_text = section_text[:end_match.start()]
+
+                # 항목 추출
+                items = self._split_items(section_text)
+                if items:
+                    # 중복 제거하며 추가
+                    for item in items:
+                        if item not in all_items:
+                            all_items.append(item)
+                    # evidence: 줄바꿈/불릿을 공백으로 정리, 단어 경계에서 자르기
+                    evidence_text = section_start + section_text.strip()
+                    evidence_text = re.sub(r'\s*-\s*', ' ', evidence_text)  # 불릿 정리
+                    evidence_text = format_evidence(evidence_text)
+                    all_evidence.append(truncate_at_word_boundary(evidence_text, 100))
+
+        if all_items:
+            return all_items, " | ".join(all_evidence)
 
         return [], ""
 
@@ -215,17 +243,41 @@ class RequirementsExtractor(BaseExtractor):
             if not item:
                 continue
 
-            # 너무 긴 항목은 문장으로 간주하여 제외 (60자 이상)
-            if len(item) > 60:
+            # 앞에 붙은 ": - " 또는 "- " 제거
+            item = re.sub(r'^[:\-\s]+', '', item).strip()
+
+            # 빈 항목 스킵 (정리 후)
+            if not item:
                 continue
 
-            # 괄호 내용 제거 (예: "(Korean/English)" 제거)
-            item = re.sub(r'\s*\([^)]*\)\s*$', '', item).strip()
-
-            # 끝에 붙은 마침표 제거
-            item = item.rstrip('.')
-
-            if item:
-                cleaned.append(item)
+            # " + " 분리 (단, "C++" 등 언어명은 제외)
+            # "A (...) + B" -> ["A (...)", "B"]
+            if ' + ' in item and 'C++' not in item and '++' not in item:
+                sub_items = [s.strip() for s in item.split(' + ') if s.strip()]
+                for sub in sub_items:
+                    sub = self._clean_item(sub)
+                    if sub:
+                        cleaned.append(sub)
+            else:
+                item = self._clean_item(item)
+                if item:
+                    cleaned.append(item)
 
         return cleaned
+
+    def _clean_item(self, item: str) -> str:
+        """개별 항목 정리"""
+        if not item:
+            return ""
+
+        # 너무 긴 항목은 문장으로 간주하여 제외 (60자 이상)
+        if len(item) > 60:
+            return ""
+
+        # 괄호 내용 제거 (예: "(Korean/English)" 제거)
+        item = re.sub(r'\s*\([^)]*\)\s*$', '', item).strip()
+
+        # 끝에 붙은 마침표 제거
+        item = item.rstrip('.')
+
+        return item

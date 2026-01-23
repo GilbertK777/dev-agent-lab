@@ -60,6 +60,13 @@ class TeamSizeExtractor(BaseExtractor):
             lambda m: {"min": int(m.group(1)), "max": int(m.group(2))},
             "team_size_range"
         ),
+
+        # "team is 2~5", "team is 2-5"
+        (
+            re.compile(r"team\s+is\s+(\d+)\s*[~\-]\s*(\d+)", re.IGNORECASE),
+            lambda m: {"min": int(m.group(1)), "max": int(m.group(2))},
+            "team_is_range"
+        ),
     ]
 
     # === 단일값 패턴 ===
@@ -120,12 +127,19 @@ class TeamSizeExtractor(BaseExtractor):
             "n_myung_context"
         ),
 
-        # 단순 "N명" (앞에 시간 단위가 없을 때만)
+        # 단순 "N명" (앞에 시간 단위가 없을 때만, 부분 투입 제외)
+        # "담당 1명", "포함" 등 부분 투입 컨텍스트 제외
         (
-            re.compile(r"(?<![\d])\s*(\d+)\s*명(?!\s*(?:개월|달|주|일|년))", re.IGNORECASE),
+            re.compile(r"(?<![\d])(?<!담당\s)(\d+)\s*명(?!\s*(?:개월|달|주|일|년))(?!.*포함)", re.IGNORECASE),
             lambda m: int(m.group(1)),
             "simple_myung"
         ),
+    ]
+
+    # 부분 투입/담당 제외 패턴 (이 패턴에 매칭되면 팀 사이즈가 아님)
+    EXCLUSION_PATTERNS = [
+        re.compile(r"담당\s*\d+\s*명", re.IGNORECASE),
+        re.compile(r"\d+\s*명\s*(?:포함|투입|배정|배치)", re.IGNORECASE),
     ]
 
     # 팀 관련 컨텍스트 키워드
@@ -159,7 +173,7 @@ class TeamSizeExtractor(BaseExtractor):
     def _extract_from_text(self, text: str) -> Optional[ExtractResult]:
         """단일 텍스트에서 추출 시도 (범위 패턴 우선)"""
 
-        # 1. 범위 패턴 먼저 시도
+        # 1. 범위 패턴 먼저 시도 (부분 투입 체크 전에)
         for pattern, converter, pattern_name in self.RANGE_PATTERNS:
             match = pattern.search(text)
             if match:
@@ -181,7 +195,12 @@ class TeamSizeExtractor(BaseExtractor):
                 except (ValueError, IndexError):
                     continue
 
-        # 2. 단일값 패턴 시도
+        # 2. 부분 투입/담당 패턴이면 단일값 추출 스킵
+        for excl_pattern in self.EXCLUSION_PATTERNS:
+            if excl_pattern.search(text):
+                return None
+
+        # 3. 단일값 패턴 시도
         for pattern, converter, pattern_name in self.SINGLE_PATTERNS:
             match = pattern.search(text)
             if match:

@@ -57,12 +57,13 @@ EXTRACTORS = [
 UNCERTAINTY_KEYWORDS = [
     # 영어 불확실 표현
     "maybe", "perhaps", "possibly", "might", "could be",
-    "likely", "probably", "prefer", "ideally",
+    "likely", "probably", "prefer", "preferred", "ideally",
     # 범위/변동 표현
     "within", "around", "approximately", "about",
     "flexible", "evolving", "changing",
     # 위험 신호
     "tight", "scope change", "budget tight",
+    "sooner", "if possible",
     # 한글 불확실 표현
     "아마", "검토", "미정", "tbd", "확인 필요", "논의 필요",
     "불확실", "모르", "글쎄", "아직", "예정",
@@ -144,6 +145,22 @@ def _calculate_ambiguity_score(
     structured_count = must_have_count + nice_to_have_count
     if structured_count >= 5:
         score -= 15
+
+    # 컴플라이언스/운영제약 신호가 있으면 +5 (tie-breaker)
+    compliance_signals_en = [
+        "no internet", "offline", "security", "compliance", "production", "forbidden",
+    ]
+    compliance_signals_ko = [
+        "인터넷 불가", "오프라인", "보안", "컴플라이언스", "운영", "현장", "프로덕션", "금지",
+    ]
+    # 한글은 공백 변화에도 안정적으로 잡히도록 공백 제거 버전도 검사
+    text_compact = text_lower.replace(" ", "")
+    has_compliance = (
+        any(sig in text_lower for sig in compliance_signals_en) or
+        any(sig in text_lower or sig.replace(" ", "") in text_compact for sig in compliance_signals_ko)
+    )
+    if has_compliance:
+        score += 5
 
     return max(0, min(100, score))
 

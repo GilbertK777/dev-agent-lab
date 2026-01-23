@@ -64,6 +64,38 @@
         "ambiguity_high": true,
         "uncertainty_keywords": ["within", "prefer", "tight", "evolving", "scope change"]
       }
+    },
+    {
+      "id": "test_5",
+      "name": "Factory control + compliance + mixed sections (고난이도 한/영 혼합)",
+      "input": "프로젝트: Semiconductor equipment control + traceability + monitoring.\n\nTeam / 인력:\n- Core dev team is 2~5 (flexible), ideally 3.\n- UI는 C# WPF 담당 1명 포함(부분 투입 가능).\n\nTimeline / 기간:\n- Overall timeline is 10 months.\n- Start is next month, and requirements are still evolving (scope change likely).\n\nMust have features are:\n- Motion control and TCP/IP communication and SECS/GEM integration\n- Recipe management, alarm handling\n- Audit logging (who/when/what) + traceability report export\n\n필수 기능:\n- 장비 상태 모니터링(Alarm summary) 및 운영자 권한(Role-based access control)\n\nNice to have:\n- MES interface, remote diagnostics, automated report generation\n- Multilingual UI (Korean/English), monitoring dashboard\n\nConstraints:\n- Target OS: Windows 10/11 on factory PCs. Dev is on WSL2.\n- Language stack: Python + C# + C++ (only for low-level driver).\n- LLM usage is forbidden in production runtime (security/compliance). Don't use LLM on production machines.\n- No internet access on production machines; offline update only.\n- Budget is tight, and delivery date is preferred sooner if possible.\n\nAsk:\n1) What should we clarify first?\n2) Which trade-offs are the most risky?",
+      "expected": {
+        "team_size_range": [2, 5],
+        "deadline_days": 300,
+        "must_have": [
+          "Motion control",
+          "TCP/IP communication",
+          "SECS/GEM integration",
+          "Recipe management",
+          "alarm handling",
+          "Audit logging",
+          "traceability report export",
+          "장비 상태 모니터링",
+          "운영자 권한"
+        ],
+        "nice_to_have": [
+          "MES interface",
+          "remote diagnostics",
+          "automated report generation",
+          "Multilingual UI",
+          "monitoring dashboard"
+        ],
+        "platform": "Windows",
+        "language_stack": ["Python", "C#", "C++"],
+        "forbidden": ["LLM"],
+        "ambiguity_high": true,
+        "uncertainty_keywords": ["flexible", "evolving", "scope change", "tight", "preferred"]
+      }
     }
   ]
 }

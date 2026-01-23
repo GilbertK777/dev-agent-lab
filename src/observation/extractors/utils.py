@@ -7,6 +7,25 @@ evidence 문자열 후처리 등 추출기 공통 기능
 import re
 
 
+def truncate_at_word_boundary(text: str, max_len: int = 100) -> str:
+    """
+    단어 경계에서 자르고 '…' 추가.
+    단어 중간에서 자르지 않음.
+    """
+    if not text or len(text) <= max_len:
+        return text
+
+    # max_len 위치에서 가장 가까운 단어 경계 찾기
+    truncated = text[:max_len]
+
+    # 마지막 공백 위치 찾기
+    last_space = truncated.rfind(' ')
+    if last_space > max_len * 0.5:  # 절반 이상 위치에서 공백 발견
+        truncated = truncated[:last_space]
+
+    return truncated.rstrip() + '…'
+
+
 def format_evidence(text: str) -> str:
     """
     Evidence 문자열을 사람이 읽기 자연스럽게 후처리한다.

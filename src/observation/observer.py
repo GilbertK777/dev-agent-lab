@@ -55,9 +55,18 @@ EXTRACTORS = [
 # === 불확실성 키워드 ===
 
 UNCERTAINTY_KEYWORDS = [
+    # 영어 불확실 표현
     "maybe", "perhaps", "possibly", "might", "could be",
+    "likely", "probably", "prefer", "ideally",
+    # 범위/변동 표현
+    "within", "around", "approximately", "about",
+    "flexible", "evolving", "changing",
+    # 위험 신호
+    "tight", "scope change", "budget tight",
+    # 한글 불확실 표현
     "아마", "검토", "미정", "tbd", "확인 필요", "논의 필요",
-    "불확실", "모르", "글쎄", "아직", "예정"
+    "불확실", "모르", "글쎄", "아직", "예정",
+    "가능성", "변동", "유동적",
 ]
 
 
@@ -81,7 +90,9 @@ def _run_extractors(
 def _calculate_ambiguity_score(
     text: str,
     extractions: list[ExtractResult],
-    unknowns: list[Unknown]
+    unknowns: list[Unknown],
+    must_have_count: int = 0,
+    nice_to_have_count: int = 0
 ) -> int:
     """
     모호성 점수 계산 (0~100)
@@ -90,23 +101,51 @@ def _calculate_ambiguity_score(
     - unknowns 많을수록 ↑
     - maybe/TBD 등 불확실 표현 많을수록 ↑
     - 숫자/명세 부족 시 ↑
+    - 구조화된 요구사항(must_have + nice_to_have)이 많으면 ↓
+
+    스케일:
+    - 0~20: 낮음 (명확함)
+    - 21~50: 중간
+    - 51~100: 높음 (명확화 필요)
     """
     score = 0
 
-    # unknowns 개수 (최대 40점)
-    score += min(40, len(unknowns) * 10)
+    # unknowns 개수 (최대 30점, 항목당 15점)
+    score += min(30, len(unknowns) * 15)
 
-    # 불확실 키워드 (최대 30점)
+    # 불확실 키워드 카운트
     text_lower = text.lower()
     uncertainty_count = sum(1 for kw in UNCERTAINTY_KEYWORDS if kw in text_lower)
-    score += min(30, uncertainty_count * 10)
 
-    # 추출 실패/낮은 신뢰도 (최대 30점)
+    # 키워드 점수 (점진적 증가, 최대 30점)
+    # 1-2개: 각 3점, 3-4개: 각 4점, 5개+: 각 5점
+    keyword_score = 0
+    for i in range(uncertainty_count):
+        if i < 2:
+            keyword_score += 3
+        elif i < 4:
+            keyword_score += 4
+        else:
+            keyword_score += 5
+    score += min(30, keyword_score)
+
+    # 핵심 추출기(deadline, team_size) 누락 시 가산점 (최대 20점)
+    extractor_names = {e.extractor for e in extractions}
+    critical_extractors = {"deadline", "team_size"}
+    missing_critical = len(critical_extractors - extractor_names)
+    score += missing_critical * 10
+
+    # 낮은 신뢰도 추출 (최대 20점)
     low_confidence_count = sum(1 for e in extractions if e.confidence < 0.7)
-    missing_critical = 2 - len(extractions)  # deadline, team_size 중 누락된 것
-    score += min(30, (low_confidence_count + max(0, missing_critical)) * 10)
+    score += min(20, low_confidence_count * 10)
 
-    return min(100, score)
+    # 구조화된 요구사항이 풍부하면 감점 (명확한 입력으로 판단)
+    # must_have + nice_to_have 합이 5 이상이면 -15점
+    structured_count = must_have_count + nice_to_have_count
+    if structured_count >= 5:
+        score -= 15
+
+    return max(0, min(100, score))
 
 
 def _generate_unknowns(
@@ -138,8 +177,11 @@ def _generate_unknowns(
 
     # team_size 범위인 경우 (확정 필요)
     if team_size_min is not None and team_size_max is not None:
+        question = _generate_team_range_question(
+            text, team_size_min, team_size_max
+        )
         unknowns.append(Unknown(
-            question=f"팀 규모를 {team_size_min}명으로 확정할지 {team_size_max}명으로 확정할지 결정되어 있나요?",
+            question=question,
             reason="인원 확정에 따라 일정/범위/역할 분담이 달라집니다.",
             evidence=team_range_evidence
         ))
@@ -161,6 +203,57 @@ def _generate_unknowns(
             ))
 
     return unknowns
+
+
+def _generate_team_range_question(
+    text: str,
+    team_size_min: int,
+    team_size_max: int
+) -> str:
+    """
+    팀 인원 범위에 대한 확인 질문을 생성한다.
+
+    입력에 "ideally", "preferred", "선호" 등의 표현이 있으면
+    해당 nuance를 반영한 질문을 생성한다.
+    """
+    text_lower = text.lower()
+
+    # 선호값 추출 패턴
+    preferred_value = None
+    preferred_keywords = ["ideally", "preferred", "best", "선호", "가능하면", "이상적"]
+
+    # "ideally N" 또는 "선호 N명" 패턴 검색
+    ideally_pattern = re.search(r'ideally\s+(\d+)', text_lower)
+    preferred_pattern = re.search(r'prefer(?:red|s)?\s+(\d+)', text_lower)
+    korean_pattern = re.search(r'(?:선호|이상적)[^\d]*(\d+)', text)
+
+    if ideally_pattern:
+        preferred_value = int(ideally_pattern.group(1))
+    elif preferred_pattern:
+        preferred_value = int(preferred_pattern.group(1))
+    elif korean_pattern:
+        preferred_value = int(korean_pattern.group(1))
+
+    # 선호 키워드가 있는지 확인
+    has_preference = any(kw in text_lower for kw in preferred_keywords)
+
+    # 질문 생성
+    if preferred_value and team_size_min <= preferred_value <= team_size_max:
+        return (
+            f"팀 인원은 {team_size_min}~{team_size_max}명 범위이며, "
+            f"이상적으로는 {preferred_value}명을 선호하는 것으로 보입니다. "
+            f"초기 기준 인원을 {preferred_value}명으로 확정해도 될까요?"
+        )
+    elif has_preference:
+        return (
+            f"팀 인원은 {team_size_min}~{team_size_max}명 범위로 보입니다. "
+            f"선호하는 인원 규모가 있다면, 그 기준으로 확정해도 될까요?"
+        )
+    else:
+        return (
+            f"팀 규모가 {team_size_min}~{team_size_max}명 범위로 되어 있습니다. "
+            f"초기 계획 기준 인원을 몇 명으로 확정할까요?"
+        )
 
 
 def _extract_requirements(sentences: list[str]) -> list[str]:
@@ -250,7 +343,12 @@ def observe_v2(user_input: str) -> ObservationResult:
     )
 
     # 5. Quantify
-    ambiguity_score = _calculate_ambiguity_score(user_input, extractions, unknowns)
+    # 구조화된 요구사항 개수를 전달 (fallback 전 원본 기준)
+    ambiguity_score = _calculate_ambiguity_score(
+        user_input, extractions, unknowns,
+        must_have_count=len(must_have),
+        nice_to_have_count=len(nice_to_have)
+    )
 
     # 요구사항: 추출된 항목이 없으면 문장으로 fallback
     if not must_have:

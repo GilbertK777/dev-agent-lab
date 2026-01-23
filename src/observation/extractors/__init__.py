@@ -7,6 +7,7 @@ from src.observation.extractors.requirements_extractor import RequirementsExtrac
 from src.observation.extractors.platform_extractor import PlatformExtractor
 from src.observation.extractors.stack_extractor import StackExtractor
 from src.observation.extractors.forbidden_extractor import ForbiddenExtractor
+from src.observation.extractors.utils import format_evidence
 
 __all__ = [
     "BaseExtractor",
@@ -16,4 +17,5 @@ __all__ = [
     "PlatformExtractor",
     "StackExtractor",
     "ForbiddenExtractor",
+    "format_evidence",
 ]

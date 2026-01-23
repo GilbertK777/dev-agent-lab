@@ -59,13 +59,35 @@ Agent는 "X를 추천합니다" 또는 "X가 더 적합해 보입니다"라고 �
 - 적절한 경우 신뢰도 수준을 표시해야 합니다
 - 과신하는 답변을 피해야 합니다
 
-## 프로젝트 구조
+---
+
+## 작업 원칙 (Claude Code / AI 어시스턴트)
+
+### 작업 범위 제한 (중요)
+- **repo 내부만 작업**합니다. 상위 디렉토리/루트 스캔(예: `/home`, `/`)은 금지합니다.
+- 파일 탐색은 필요한 경로만 최소로 읽습니다.
+
+### 변경 규율
+- “테스트 추가/수정 → 구현 수정 → 전체 테스트 실행 → 결과 요약” 순서를 지킵니다.
+- **커밋은 사용자가 명시적으로 요청할 때만** 수행합니다.
+- 기존 테스트(test_1~test_4 포함)는 기본적으로 유지하며, 회귀를 막습니다.
+
+### 실행 환경 고정 (WSL + venv)
+- Python 실행은 **반드시 venv(.venv) 우선**:
+  - `.venv/bin/python -m pytest -v`
+  - `.venv/bin/python test.py`
+  - `.venv/bin/python -m src.main`
+- 시스템 Python(`/usr/bin/python3`)과 혼용하지 않습니다.
+
+---
+
+## 프로젝트 구조 (업데이트됨)
 
 ```
 dev-agent-lab/
 ├── CLAUDE.md                          # AI 어시스턴트 가이드라인
 ├── README.md                          # 프로젝트 문서
-├── test.py                            # JSON 기반 테스트 러너
+├── test.py                            # JSON 기반 시나리오 테스트 러너
 │
 ├── src/
 │   ├── main.py                        # CLI 진입점 및 출력 포맷터
@@ -73,27 +95,32 @@ dev-agent-lab/
 │   ├── observation/                   # 관찰 단계 (v2 파이프라인)
 │   │   ├── __init__.py
 │   │   ├── normalizer.py              # 보존적 텍스트 정규화 (Lossless)
-│   │   ├── observer.py                # 관찰 파이프라인 조율
-│   │   ├── schema.py                  # ObservationResult 스키마
-│   │   └── extractors/                # 정보 추출기
+│   │   ├── schema.py                  # ObservationResult/Extraction/Unknown 스키마
+│   │   ├── observer.py                # 파이프라인 오케스트레이터 + ambiguity/unknowns
+│   │   └── extractors/                # 정보 추출기 (단일 책임)
 │   │       ├── __init__.py
 │   │       ├── base.py                # BaseExtractor 추상 클래스
-│   │       ├── deadline_extractor.py  # 일정/기간 추출 (문장 스캔 + 합산)
-│   │       └── team_extractor.py      # 팀 인원 추출 (단일값/범위)
+│   │       ├── utils.py               # 공통 유틸(항목 분리/정리 등)
+│   │       ├── deadline_extractor.py  # 일정/기간 추출 (일수 변환)
+│   │       ├── team_extractor.py      # 팀 인원 추출 (단일값/범위)
+│   │       ├── requirements_extractor.py # Must/Nice 섹션 기반 요구사항 추출
+│   │       ├── platform_extractor.py  # OS/플랫폼 추출 (Windows/Linux/WSL 등)
+│   │       ├── stack_extractor.py     # 언어/기술 스택 추출 (Python/C#/C++ 등)
+│   │       └── forbidden_extractor.py # 금지(Forbidden) 항목 추출 (예: LLM)
 │   │
 │   ├── reasoning/                     # 판단 단계
 │   │   ├── __init__.py
-│   │   └── reasoner.py                # 트레이드오프 분석
+│   │   └── reasoner.py                # Pros/Cons/Assumptions/Constraints 생성
 │   │
 │   └── proposal/                      # 제안 단계
 │       ├── __init__.py
-│       └── proposer.py                # 추천 및 다음 고려사항 생성
+│       └── proposer.py                # 추천/근거/다음 고려사항 생성
 │
 └── tests/
-    ├── test_observer_v2.py            # Observer v2 유닛 테스트 (39개)
-    ├── test_policy.py                 # 정책 통합 테스트
+    ├── test_observer_v2.py            # Observer v2 유닛 테스트
+    ├── test_policy.py                 # 정책(헌법) 통합 테스트
     └── fixtures/
-        ├── test_inputs.json           # 테스트 입력 데이터
+        ├── test_inputs.json           # 테스트 입력 데이터 (test_1~test_4)
         └── test_results.json          # 테스트 실행 결과
 ```
 
@@ -103,28 +130,40 @@ dev-agent-lab/
 사용자 입력 → Normalizer → Extractors → Observer → Reasoner → Proposer → 출력
                  │              │
                  │              ├── DeadlineExtractor (일정)
-                 │              └── TeamExtractor (인원)
+                 │              ├── TeamExtractor (인원)
+                 │              ├── RequirementsExtractor (Must/Nice)
+                 │              ├── PlatformExtractor (플랫폼)
+                 │              ├── StackExtractor (스택)
+                 │              └── ForbiddenExtractor (금지)
                  │
                  └── Lossless 정규화 (형태 정리, 의미 보존)
 ```
+
 - Normalizer는 **형태만 정리**하고 의미는 보존합니다.
 - Extractors는 문맥을 해석하지 않으며, 규칙에 따라 신호만 추출합니다.
 - Observer는 결과를 통합하고 **unknowns / ambiguity**를 계산합니다.
 - Reasoner는 **판단 근거를 설명**합니다.
 - Proposer는 **결정을 강요하지 않습니다.**
 
+---
 
-### 주요 모듈 설명
+## 주요 모듈 설명
 
 | 모듈 | 역할 |
 |------|------|
-| `normalizer.py` | 텍스트 형태 정리 (공백, 숫자-단위 분리). 단어 치환 금지. |
-| `deadline_extractor.py` | 년/월/주/일 개별 스캔 후 합산. "1 year and 3 months" → 455일 |
-| `team_extractor.py` | 단일값(5명) 또는 범위(2~3명) 추출 |
-| `observer.py` | 추출기 결과 통합, unknowns 자동 생성, ambiguity 점수 계산 |
-| `reasoner.py` | Pros/Cons/Assumptions/Constraints 분석 |
-| `proposer.py` | 추천, 근거, 다음 고려사항, 인간 결정 안내 생성 |
+| `normalizer.py` | 텍스트 형태 정리 (공백, 숫자-단위 분리). **단어 치환/의미 변형 최소화** |
+| `schema.py` | ObservationResult / Extraction / Unknown 등 결과 스키마 |
+| `deadline_extractor.py` | 년/월/주/일 스캔 → 일수 변환 및 합산 |
+| `team_extractor.py` | 단일값(5명) 또는 범위(2~4명) 추출 |
+| `requirements_extractor.py` | Must/Nice/Core requirement 섹션 감지 후 항목 리스트 추출 |
+| `platform_extractor.py` | OS/환경(Windows/Linux/WSL) 추출 |
+| `stack_extractor.py` | 언어/기술 스택(Python/C#/C++) 추출 |
+| `forbidden_extractor.py` | 금지 항목(예: LLM forbidden) 추출 |
+| `observer.py` | 추출 결과 통합, unknowns 자동 생성, ambiguity 점수 계산 |
+| `reasoner.py` | Pros/Cons/Assumptions/Constraints 분석 템플릿 |
+| `proposer.py` | 추천, 근거, 다음 고려사항, “최종 결정은 인간” 고지 |
 
+---
 
 ## (추가) Rule-based 시스템에 대한 명시적 원칙
 
@@ -136,6 +175,60 @@ dev-agent-lab/
 - 복잡한 입력은 **섹션 기반(Must / Nice / Constraints)** 으로 점진적 처리합니다.
 - ambiguity는 입력 자체의 모호함 수준을 의미합니다.
 - unknowns는 판단을 위해 반드시 확인해야 할 질문 목록입니다.
+
+---
+
+## (추가) Evidence 문자열 품질 원칙 (표현만 개선)
+
+목표:
+- must_have_evidence / nice_to_have_evidence / forbidden_evidence의
+  공백·개행 깨짐을 정리하여 사람이 읽기 자연스럽게 만듭니다.
+
+규칙:
+- **추출 로직(무엇을 잡는지)은 변경하지 말고**, evidence 저장 직전에만 후처리합니다.
+- 다음을 만족해야 합니다:
+  - `:` 뒤에는 항상 공백 1칸
+  - 아래 토큰 뒤에는 공백 1칸(붙어 있으면 분리)
+    - 한글 조사/연결: `은/는/이/가/을/를/과/와/및/또는/그리고/이고/이며/로/으로/로는/으로는`
+    - 영어 연결/동사: `is/are/was/were/be/been/being/has/have/had`
+    - 영어 포함/열거: `include/includes/included/including`
+  - 연속 공백은 1칸으로 축소
+  - 줄바꿈은 제거하거나 1줄로 정리
+
+예시:
+- ❌ `Core requirement isrule-based analysis`
+- ✅ `Core requirement is rule-based analysis`
+
+---
+
+## (추가) ambiguity_score 설계 원칙
+
+목표:
+- 점수가 특정 값으로 몰리지 않도록(예: 44/60 고정) 분산되며,
+  상대 비교가 가능해야 합니다.
+
+기본 방향:
+- 불확실성 키워드는 유지하되, 보너스/가중치에 상한을 두고,
+  구조화된 요구사항이 잘 잡힌 입력은 **감점(안정화)** 할 수 있습니다.
+- 점수 범위는 0~100을 유지합니다.
+- (예시 기대) `test_2 > test_4 > test_1`
+
+---
+
+## (추가) team_size 범위 unknowns 질문 원칙
+
+목표:
+- team_size가 범위로 주어질 때 입력의 뉘앙스를 반영한 자연스러운 확인 질문을 생성합니다.
+
+규칙:
+- team_extractor(범위 추출) 로직은 변경하지 않습니다.
+- unknowns 질문 생성부만 개선합니다.
+- 입력에 `ideally / preferred / 선호` 등이 있으면 질문에 반드시 반영합니다.
+
+예시:
+- 입력: `team size is 2~4, ideally 3`
+- 질문:
+  `팀 인원은 2~4명 범위로 보이며, 이상적으로는 3명을 선호하는 것으로 보입니다. 초기 기준 인원을 3명으로 확정해도 될까요?`
 
 ---
 

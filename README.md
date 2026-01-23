@@ -13,13 +13,14 @@ Agent를 만드는 방법을 탐구합니다. 결정을 자동화하는 것이 �
 - 아키텍처 트레이드오프 평가 지원 (예: 모놀리스 vs 마이크로서비스)
 - 장점, 단점, 가정, 제약조건과 함께 선택지 제시
 - 명확한 근거와 함께 추천 제공
-- 맥락이 부족할 때 명확화 질문
+- 맥락이 부족할 때 명확화 질문(unknowns) 생성
 
 ## Agent가 하지 않는 일
 
 - 개발자 대신 최종 결정 내리기
-- 코드 자동 실행 또는 파일 수정
+- 승인 없이 코드 자동 실행 또는 파일 수정
 - 누락된 맥락이나 요구사항 임의로 가정
+- 테스트 없이 로직을 변경하기
 
 ---
 
@@ -36,171 +37,213 @@ Agent는 3단계 파이프라인으로 동작합니다:
 
 | 단계 | 역할 | 출력 |
 |------|------|------|
-| **Observe** | 사용자 입력에서 정량화된 구조 데이터 추출 | `ObservationResult` |
+| **Observe** | 사용자 입력에서 정량화된 구조 데이터 추출 (rule-based) | `ObservationResult` |
 | **Reason** | 트레이드오프 분석 및 가정/제약 정리 | `Analysis` |
-| **Propose** | 선택지와 추천 생성 (최종 결정은 인간에게) | `Recommendation` |
+| **Propose** | 선택지와 추천 생성 (**최종 결정은 인간**) | `Recommendation` |
 
 ---
 
-## Observer v2 파이프라인
+## Observer v2 파이프라인 (Rule-based Only)
 
-Observer는 자연어 입력을 정량화된 구조 데이터로 변환하는 5단계 파이프라인입니다.
+Observer는 자연어 입력을 정량화된 구조 데이터로 변환하는 파이프라인입니다.  
 **LLM 없이 규칙 기반(rule-based)으로만 동작합니다.**
 
-### 파이프라인 구조
+### 파이프라인 구조(개념)
 
 ```
 ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐
 │ Normalize │ → │  Segment  │ → │  Extract  │ → │ Quantify  │ → │ Validate  │
 └───────────┘   └───────────┘   └───────────┘   └───────────┘   └───────────┘
      ↓               ↓               ↓               ↓               ↓
-  한영 정규화      문장 분리       필드별 추출     점수/수치화    unknowns 생성
+  형태 정리        문장/섹션      필드별 추출     점수/수치화    unknowns 생성
 ```
 
-### 각 단계 설명
+> 구현은 `src/observation/observer.py`가 오케스트레이션을 담당하고,  
+> `src/observation/extractors/*`가 필드별 단일 책임 추출을 담당합니다.
 
-| 단계 | 설명 | 예시 |
-|------|------|------|
-| **Normalize** | 동의어 사전으로 한영 표현 통일 (번역 X) | "deadline" → `DEADLINE`, "마감" → `DEADLINE` |
-| **Segment** | 문장/불릿/섹션 분리 | "A입니다. B입니다" → `["A입니다", "B입니다"]` |
-| **Extract** | 플러그인 추출기로 필드별 값 추출 | "3개월" → `deadline_days=90` |
-| **Quantify** | 모호성 점수 계산 (0~100) | unknowns 많으면 점수 ↑ |
-| **Validate** | 누락/충돌 감지 → unknowns 생성 | deadline 없음 → "마감일이 언제인가요?" |
+### 지원 필드(현재)
 
-### 지원 필드
+- **기간/일정**: `deadline_days`
+- **팀 인원**: `team_size` 또는 범위(`team_size_min`, `team_size_max`)
+- **요구사항**: `must_have`, `nice_to_have` (섹션 기반 파싱)
+- **플랫폼**: `platform` (Windows/Linux/WSL 등)
+- **언어/기술 스택**: `stack` (Python/C#/C++ 등)
+- **금지 항목**: `forbidden` (예: `LLM`)
+- **품질/불확실성**: `ambiguity_score`, `unknowns`
+- **추출 근거/신뢰도**: `extractions` (extractor 이름/값/근거(evidence)/confidence)
 
-#### 일정 (Deadline)
+---
+
+## Deadline(기간) 추출
+
+| 형식 | 예시 | 변환 결과(일수) |
+|------|------|----------------|
+| 년+개월 복합(한글) | `1년 6개월` | 545일 (1*365 + 6*30) |
+| 년+개월 복합(영문) | `1 year and 3 months` | 455일 |
+| 년 단위 | `2년`, `2 years` | 730일 |
+| 개월 단위 | `3개월`, `3 months` | 90일 |
+| 주 단위 | `2주`, `2 weeks` | 14일 |
+| 일 단위 | `10일`, `10 days` | 10일 |
+| D±N 형식 | `D+14`, `D-7` | 14일, 7일 |
+
+---
+
+## Team Size(팀 인원) 추출
 
 | 형식 | 예시 | 변환 결과 |
 |------|------|----------|
-| 년+개월 복합 | "1년 6개월" | 545일 |
-| 년 단위 | "2년", "2 years" | 730일 |
-| 개월 단위 | "3개월", "3 months" | 90일 |
-| 주 단위 | "2주", "2 weeks" | 14일 |
-| 일 단위 | "10일", "10 days" | 10일 |
-| D+N 형식 | "D+14", "D-7" | 14일, 7일 |
+| 단일값 | `팀은 3명`, `5 developers`, `5 ppl` | `team_size=3/5` |
+| 범위 | `2~3명`, `2-4 people` | `team_size_min=2, team_size_max=4` |
 
-#### 팀 인원 (Team Size)
+> 범위 입력은 **unknowns 질문**을 통해 “초기 기준 인원 확정”을 유도합니다.  
+> 입력에 `ideally / preferred / 선호` 등이 있으면 질문에 반영합니다.
 
-| 형식 | 예시 | 변환 결과 |
-|------|------|----------|
-| 인원 형식 | "인원은 5명" | 5 |
-| 팀 형식 | "팀 3명", "팀은 3명" | 3 |
-| 개발자 형식 | "개발자 5명" | 5 |
-| 영어 형식 | "team of 4", "5 developers" | 4, 5 |
-| 약어 형식 | "5 ppl" | 5 |
+---
 
-### 출력 스키마
+## Requirements(Must/Nice) 추출
+
+다음 형식을 우선적으로 지원합니다.
+
+- `Must have 기능은 X, Y 이고 ...`
+- `Nice to have 로는 A, B ...`
+- `Must have: X, Y, Z.`
+- `Nice to have: A, B.`
+- `Core requirement is ...`
+- `Nice features include ...`
+
+항목 분리 기준(대표):
+- `,` / `and` / `및` / `이고` 등
+
+---
+
+## 출력 스키마(요약)
+
+실제 스키마는 `src/observation/schema.py`에 있습니다. 여기서는 핵심 필드만 요약합니다.
 
 ```python
 @dataclass
 class ObservationResult:
-    raw_input: str                    # 원본 입력
-    lang_mix_ratio: float             # 한영 혼합 비율 (0.0~1.0)
-    tokens_estimate: int              # 토큰 수 추정
+    raw_input: str
 
     # 정량화된 필드
-    deadline_days: Optional[int]      # 일정 (일수)
-    team_size: Optional[int]          # 팀 인원 (명)
+    deadline_days: Optional[int]
+    team_size: Optional[int]
+    team_size_min: Optional[int]
+    team_size_max: Optional[int]
 
     # 요구사항
-    must_have: list[str]              # 필수 요구사항
+    must_have: list[str]
+    nice_to_have: list[str]
 
-    # 점수
-    ambiguity_score: int              # 모호성 점수 (0~100)
+    # 환경/스택/금지
+    platform: Optional[str]
+    stack: list[str]
+    forbidden: list[str]
 
-    # 미확인 정보
-    unknowns: list[Unknown]           # 자동 생성된 질문
-    extractions: list[ExtractResult]  # 추출 결과 (신뢰도 포함)
-```
+    # 점수/미확인 정보
+    ambiguity_score: int              # 0~100
+    unknowns: list[Unknown]
 
-### 사용 예시
-
-```python
-from src.observation.observer import observe_v2
-
-# 한영 혼합 입력
-result = observe_v2("인원은 2명이고 기간은 1년 6개월")
-
-print(result.team_size)        # 2
-print(result.deadline_days)    # 545 (1*365 + 6*30)
-print(result.ambiguity_score)  # 0 (명확한 입력)
-print(result.unknowns)         # [] (누락 없음)
-
-# 모호한 입력
-result = observe_v2("아마 웹사이트를 만들어야 할 것 같아요")
-
-print(result.team_size)        # None
-print(result.deadline_days)    # None
-print(result.ambiguity_score)  # 높음 (필수 정보 누락)
-print(result.unknowns)         # [Unknown(question="마감일이..."), ...]
-```
-
-### Legacy 호환성
-
-기존 코드와의 호환성을 위해 `observe()` 함수도 유지됩니다:
-
-```python
-from src.observation.observer import observe
-
-# Legacy 방식 (v0/v1 호환)
-result = observe("인원은 2명이고 기간은 1년 6개월")
-
-print(result.constraints)  # ['[인력] 팀 2명', '[일정] 1년 6개월']
-print(result.unknowns)     # []
+    # 추출 근거(신뢰도/증거 문자열 포함)
+    extractions: list[ExtractResult]
 ```
 
 ---
 
-## 프로젝트 구조
+## 사용 예시
+
+### 1) CLI 실행
+
+```bash
+.venv/bin/python -m src.main
+```
+
+### 2) Observer v2 단독 호출
+
+```python
+from src.observation.observer import observe_v2
+
+result = observe_v2("인원은 2명이고 기간은 1년 6개월")
+print(result.team_size)       # 2
+print(result.deadline_days)   # 545
+print(result.unknowns)        # []
+```
+
+### 3) JSON 시나리오 테스트 러너
+
+`test.py`는 `tests/fixtures/test_inputs.json`을 읽어서 실행 결과를 출력하고,
+`tests/fixtures/test_results.json`에 저장합니다.
+
+```bash
+.venv/bin/python test.py
+```
+
+---
+
+## 프로젝트 구조 (업데이트됨)
 
 ```
 dev-agent-lab/
+├── CLAUDE.md                          # AI 어시스턴트 가이드라인(헌법)
+├── README.md                          # 프로젝트 문서
+├── test.py                            # JSON 기반 시나리오 테스트 러너
+│
 ├── src/
-│   ├── observation/
-│   │   ├── observer.py           # 파이프라인 오케스트레이터
-│   │   ├── schema.py             # ObservationResult, Unknown, ExtractResult
-│   │   ├── normalizer.py         # 동의어 사전 + 한영 정규화
-│   │   └── extractors/
-│   │       ├── base.py           # BaseExtractor 인터페이스
-│   │       ├── deadline_extractor.py   # 일정 추출기
-│   │       └── team_extractor.py       # 팀 인원 추출기
+│   ├── main.py                        # CLI 진입점 및 출력 포맷터
+│   ├── observation/                   # 관찰 단계 (v2 파이프라인)
+│   │   ├── normalizer.py              # 보존적 텍스트 정규화 (Lossless)
+│   │   ├── schema.py                  # ObservationResult/Unknown/ExtractResult 스키마
+│   │   ├── observer.py                # 파이프라인 통합 + ambiguity/unknowns
+│   │   └── extractors/                # 필드별 추출기(단일 책임)
+│   │       ├── base.py
+│   │       ├── utils.py
+│   │       ├── deadline_extractor.py
+│   │       ├── team_extractor.py
+│   │       ├── requirements_extractor.py
+│   │       ├── platform_extractor.py
+│   │       ├── stack_extractor.py
+│   │       └── forbidden_extractor.py
 │   ├── reasoning/
-│   │   └── reasoner.py           # 트레이드오프 분석
+│   │   └── reasoner.py                # 트레이드오프 분석
 │   └── proposal/
-│       └── proposer.py           # 추천 생성
-├── tests/
-│   ├── test_policy.py            # 정책 테스트 (v0)
-│   └── test_observer_v2.py       # Observer v2 테스트 (24개)
-├── CLAUDE.md                     # AI 어시스턴트 가이드라인
-└── README.md
+│       └── proposer.py                # 추천 생성
+│
+└── tests/
+    ├── test_policy.py                 # 정책(헌법) 테스트
+    ├── test_observer_v2.py            # Observer v2 유닛 테스트
+    └── fixtures/
+        ├── test_inputs.json           # 시나리오 입력(test_1~test_4 등)
+        └── test_results.json          # 시나리오 결과 저장
 ```
 
 ---
 
 ## 테스트
 
-```bash
-# 가상환경 활성화
-source .venv/bin/activate
+> **WSL + venv 기준으로 실행을 고정**합니다. (`python`/`python3` 혼용 금지)
 
+```bash
 # 전체 테스트 실행
-pytest -v
+.venv/bin/python -m pytest -v
 
 # Observer v2 테스트만 실행
-pytest tests/test_observer_v2.py -v
+.venv/bin/python -m pytest tests/test_observer_v2.py -v
+
+# JSON 시나리오 테스트 실행
+.venv/bin/python test.py
 ```
 
-### 테스트 커버리지
+### 테스트 커버리지(대표)
 
 | 카테고리 | 테스트 항목 |
 |----------|-------------|
-| Deadline 추출 | 한글/영어/복합 형식, D+N 형식 |
-| Team Size 추출 | 인원/팀/개발자/ppl 형식 |
-| 한영 혼합 | 동시 추출 정확도 |
-| Unknowns 생성 | 필수 필드 누락 시 자동 질문 |
-| Ambiguity Score | 0~100 범위, 명확/모호 입력 구분 |
-| Legacy 호환성 | observe() 함수 동작 확인 |
+| Deadline | 한글/영어/복합 형식, D±N |
+| Team Size | 단일값/범위, 영문/혼합 |
+| Requirements | Must/Nice 섹션 기반 추출 |
+| Platform/Stack/Forbidden | 환경/스택/금지 항목 추출 |
+| Unknowns | 범위/누락 입력에서 질문 생성 |
+| Ambiguity | 0~100 범위 및 상대 비교 |
+| Policy | “최종 결정은 인간” 등 헌법 준수 |
 
 ---
 
@@ -213,7 +256,7 @@ pytest tests/test_observer_v2.py -v
 
 ## 핵심 원칙
 
-> 확신이 없을 때는 속도나 완성도보다 명확성과 설명을 우선하세요.
+> 확신이 없을 때는 속도나 완성도보다 **명확성과 설명**을 우선하세요.
 
 ## 라이선스
 

@@ -10,11 +10,8 @@
 v2: 입력 특성에 따라 Pros/Cons가 달라지는 규칙 추가
 """
 
-import re
 from dataclasses import dataclass, field
-from typing import Optional
 
-from src.observation.observer import Observation
 from src.observation.schema import ObservationResult
 
 
@@ -47,12 +44,12 @@ BUDGET_TIGHT_KEYWORDS = [
 ]
 
 
-def _detect_ambiguity_level(text: str, observation: Observation) -> str:
+def _detect_ambiguity_level(text: str, result: ObservationResult) -> str:
     """모호성 수준 감지: HIGH / MEDIUM / LOW"""
     text_lower = text.lower()
 
     # unknowns가 많으면 HIGH
-    if len(observation.unknowns) >= 3:
+    if len(result.unknowns) >= 3:
         return "HIGH"
 
     # 불확실성 키워드 카운트
@@ -78,18 +75,18 @@ def _detect_tight_budget(text: str) -> bool:
     return any(kw in text_lower for kw in BUDGET_TIGHT_KEYWORDS)
 
 
-def _detect_team_uncertainty(observation: Observation) -> bool:
+def _detect_team_uncertainty(result: ObservationResult) -> bool:
     """팀 규모 불확실성 감지"""
-    for constraint in observation.constraints:
-        if "확정 필요" in constraint:
-            return True
+    # team_size_min/max가 있으면 범위 입력 → 불확실
+    if result.team_size_min is not None and result.team_size_max is not None:
+        return True
+    # team_size도 없으면 불확실
+    if result.team_size is None:
+        return True
     return False
 
 
-def reason(
-    observation: Observation,
-    observation_result: Optional[ObservationResult] = None
-) -> Analysis:
+def reason(result: ObservationResult) -> Analysis:
     """
     관찰 결과를 분석하여 트레이드오프 구조를 생성합니다.
 
@@ -100,16 +97,16 @@ def reason(
     assumptions: list[str] = []
     constraints: list[str] = []
 
-    text = observation.raw_input
+    text = result.raw_input
 
-    # 관찰된 제약 조건을 분석 제약에 포함
-    constraints.extend(observation.constraints)
+    # ObservationResult에서 제약 조건 구성
+    constraints.extend(_build_constraints(result))
 
     # === 모호성 수준 분석 ===
-    ambiguity_level = _detect_ambiguity_level(text, observation)
+    ambiguity_level = _detect_ambiguity_level(text, result)
 
     # === Pros 생성 (조건부) ===
-    if observation.requirements:
+    if result.must_have:
         # 모호성이 낮을 때만 "요구사항 명확" 문구 사용
         if ambiguity_level == "LOW":
             pros.append("요구사항이 명확하게 정의되어 있어 목표 설정이 가능합니다.")
@@ -118,17 +115,13 @@ def reason(
         # HIGH인 경우 "요구사항 명확" 관련 문구 없음
 
     # 팀 규모가 확정된 경우
-    if not _detect_team_uncertainty(observation):
-        for constraint in observation.constraints:
-            if "[인력]" in constraint and "확정 필요" not in constraint:
-                pros.append("팀 규모가 확정되어 역할 분담 계획이 가능합니다.")
-                break
+    if not _detect_team_uncertainty(result):
+        if result.team_size is not None:
+            pros.append("팀 규모가 확정되어 역할 분담 계획이 가능합니다.")
 
     # 일정이 명시된 경우
-    for constraint in observation.constraints:
-        if "[일정]" in constraint:
-            pros.append("일정이 명시되어 마일스톤 설정이 가능합니다.")
-            break
+    if result.deadline_days is not None:
+        pros.append("일정이 명시되어 마일스톤 설정이 가능합니다.")
 
     # === Cons 생성 (조건부) ===
 
@@ -148,11 +141,11 @@ def reason(
         cons.append("비용 효율적인 기술 선택이 중요합니다.")
 
     # 팀 규모 불확실
-    if _detect_team_uncertainty(observation):
+    if _detect_team_uncertainty(result):
         cons.append("팀 규모가 미확정이어서 역할 분담 및 일정 계획에 불확실성이 있습니다.")
 
     # 미확인 정보가 있으면 추가
-    if observation.unknowns:
+    if result.unknowns:
         if ambiguity_level != "HIGH":  # HIGH에서는 이미 추가됨
             cons.append("미확인 정보가 있어 추가 확인이 필요합니다.")
 
@@ -186,3 +179,70 @@ def reason(
         assumptions=assumptions,
         constraints=constraints,
     )
+
+
+def _build_constraints(result: ObservationResult) -> list[str]:
+    """ObservationResult에서 제약 조건 목록 생성"""
+    constraints: list[str] = []
+
+    # 인력 제약
+    if result.team_size is not None:
+        constraints.append(f"[인력] 팀 {result.team_size}명")
+    elif result.team_size_min is not None and result.team_size_max is not None:
+        constraints.append(f"[인력] 팀 {result.team_size_min}~{result.team_size_max}명 (확정 필요)")
+
+    # 일정 제약
+    if result.deadline_days is not None:
+        days = result.deadline_days
+        if days >= 365:
+            years = days // 365
+            months = (days % 365) // 30
+            if months > 0:
+                constraints.append(f"[일정] {years}년 {months}개월")
+            else:
+                constraints.append(f"[일정] {years}년")
+        elif days >= 30:
+            months = days // 30
+            constraints.append(f"[일정] {months}개월")
+        elif days >= 7:
+            weeks = days // 7
+            constraints.append(f"[일정] {weeks}주")
+        else:
+            constraints.append(f"[일정] {days}일")
+
+    # 플랫폼 제약
+    if result.platform:
+        constraints.append(f"[플랫폼] {result.platform}")
+
+    # 스택 제약
+    if result.language_stack:
+        constraints.append(f"[스택] {'/'.join(result.language_stack)}")
+
+    # 금지 사항
+    if result.forbidden:
+        constraints.append(f"[금지] {', '.join(result.forbidden)} (운영)")
+
+    # 운영제약 (텍스트에서 직접 추출)
+    text_lower = result.raw_input.lower()
+    operational = []
+
+    if "wsl" in text_lower or "wsl2" in text_lower:
+        operational.append("WSL2 개발환경")
+
+    if "no internet" in text_lower or "인터넷 불가" in text_lower or "인터넷불가" in text_lower:
+        operational.append("인터넷 불가")
+    if "offline" in text_lower or "오프라인" in text_lower:
+        if "offline update" in text_lower or "오프라인 업데이트" in text_lower:
+            operational.append("오프라인 업데이트만 가능")
+        elif "인터넷 불가" not in " ".join(operational):
+            operational.append("오프라인 환경")
+
+    if "security" in text_lower or "보안" in text_lower:
+        operational.append("보안 정책 적용")
+    if "compliance" in text_lower or "컴플라이언스" in text_lower:
+        operational.append("컴플라이언스 요구")
+
+    if operational:
+        constraints.append(f"[운영제약] {', '.join(operational)}")
+
+    return constraints

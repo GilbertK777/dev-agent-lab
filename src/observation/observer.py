@@ -25,14 +25,18 @@ from src.observation.extractors.forbidden_extractor import ForbiddenExtractor
 from src.observation.unknowns.generator import generate_unknowns
 
 
-# === Legacy Observation (하위 호환용) ===
+# === Legacy Observation (DEPRECATED) ===
 
 @dataclass
 class Observation:
     """
-    [Legacy] 사용자 입력에서 추출한 관찰 결과
+    [DEPRECATED] 사용자 입력에서 추출한 관찰 결과
 
-    v0/v1 호환을 위해 유지. 새 코드는 ObservationResult 사용 권장.
+    .. deprecated:: v2.0
+        이 클래스는 v2.0에서 deprecated 되었습니다.
+        새 코드에서는 ObservationResult를 사용하세요.
+
+    하위 호환성을 위해 유지. v3.0에서 제거 예정.
     """
     raw_input: str
     requirements: list[str] = field(default_factory=list)
@@ -284,10 +288,14 @@ def observe_v2(user_input: str) -> ObservationResult:
 
 def observe(user_input: str) -> Observation:
     """
-    [Legacy] 하위 호환용 observe 함수
+    [DEPRECATED] 하위 호환용 observe 함수
 
-    기존 Reasoner/Proposer가 사용하는 Observation 형식으로 반환.
-    내부적으로는 observe_v2를 사용.
+    .. deprecated:: v2.0
+        이 함수는 v2.0에서 deprecated 되었습니다.
+        새 코드에서는 observe_v2()를 사용하세요.
+
+    기존 Reasoner/Proposer가 사용하던 Observation 형식으로 반환.
+    내부적으로는 observe_v2를 사용. v3.0에서 제거 예정.
     """
     result = observe_v2(user_input)
 

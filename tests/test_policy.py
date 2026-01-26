@@ -11,10 +11,10 @@ from pathlib import Path
 # src 모듈을 import할 수 있도록 경로 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.observation.observer import observe
+from src.observation.observer import observe_v2, observe
 from src.reasoning.reasoner import reason
 from src.proposal.proposer import propose
-from src.main import format_output
+from src.main import format_output_v2
 
 
 class TestOutputStructurePolicy:
@@ -22,37 +22,37 @@ class TestOutputStructurePolicy:
 
     def test_output_contains_pros_section(self) -> None:
         """출력에 Pros(장점) 섹션이 포함되어야 합니다."""
-        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
-        analysis = reason(observation)
-        proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        result = observe_v2("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(result)
+        proposal = propose(result, analysis)
+        output = format_output_v2(result, analysis, proposal)
 
         assert "Pros" in output, "출력에 'Pros' 섹션이 포함되어야 합니다"
 
     def test_output_contains_cons_section(self) -> None:
         """출력에 Cons(단점) 섹션이 포함되어야 합니다."""
-        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
-        analysis = reason(observation)
-        proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        result = observe_v2("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(result)
+        proposal = propose(result, analysis)
+        output = format_output_v2(result, analysis, proposal)
 
         assert "Cons" in output, "출력에 'Cons' 섹션이 포함되어야 합니다"
 
     def test_output_contains_assumptions_section(self) -> None:
         """출력에 Assumptions(가정) 섹션이 포함되어야 합니다."""
-        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
-        analysis = reason(observation)
-        proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        result = observe_v2("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(result)
+        proposal = propose(result, analysis)
+        output = format_output_v2(result, analysis, proposal)
 
         assert "Assumptions" in output, "출력에 'Assumptions' 섹션이 포함되어야 합니다"
 
     def test_output_contains_constraints_section(self) -> None:
         """출력에 Constraints(제약) 섹션이 포함되어야 합니다."""
-        observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
-        analysis = reason(observation)
-        proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        result = observe_v2("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
+        analysis = reason(result)
+        proposal = propose(result, analysis)
+        output = format_output_v2(result, analysis, proposal)
 
         assert "Constraints" in output, "출력에 'Constraints' 섹션이 포함되어야 합니다"
 
@@ -62,10 +62,10 @@ class TestHumanDecisionPolicy:
 
     def test_output_states_human_makes_final_decision(self) -> None:
         """출력에 '최종 결정은 인간이 한다'는 의미의 문장이 포함되어야 합니다."""
-        observation = observe("어떤 아키텍처를 선택해야 할까요?")
-        analysis = reason(observation)
-        proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        result = observe_v2("어떤 아키텍처를 선택해야 할까요?")
+        analysis = reason(result)
+        proposal = propose(result, analysis)
+        output = format_output_v2(result, analysis, proposal)
 
         # 인간이 결정한다는 표현이 포함되어 있는지 확인
         human_decision_keywords = ["최종 결정은 인간", "인간이 내려야", "사람이 결정"]
@@ -80,9 +80,9 @@ class TestHumanDecisionPolicy:
 
     def test_proposal_always_includes_human_decision_note(self) -> None:
         """제안에는 항상 인간 결정 안내가 포함되어야 합니다."""
-        observation = observe("테스트 입력")
-        analysis = reason(observation)
-        proposal = propose(observation, analysis)
+        result = observe_v2("테스트 입력")
+        analysis = reason(result)
+        proposal = propose(result, analysis)
 
         assert proposal.human_decision_note, "제안에 human_decision_note가 비어있으면 안 됩니다"
         assert "인간" in proposal.human_decision_note or "사람" in proposal.human_decision_note, (
@@ -91,10 +91,16 @@ class TestHumanDecisionPolicy:
 
 
 class TestObservationConstraintExtractionPolicy:
-    """관찰 단계 제약 추출 정책 테스트 (v1.1)"""
+    """
+    관찰 단계 제약 추출 정책 테스트
+
+    NOTE: 이 테스트는 deprecated된 observe() 함수와 Observation 타입을 테스트합니다.
+    하위 호환성 검증 용도로 유지합니다.
+    """
 
     def test_observation_extracts_team_size_with_number(self) -> None:
         """팀 규모 정보가 인원수와 함께 제약 조건으로 추출되어야 합니다."""
+        # deprecated observe() 사용 - 하위 호환성 테스트
         observation = observe("팀은 3명이고 출시까지는 2개월 정도 남았는데, 요구사항 변경이 많음")
 
         # 인력 관련 제약이 포함되어 있는지 확인 (숫자 3 포함)
@@ -110,6 +116,7 @@ class TestObservationConstraintExtractionPolicy:
 
     def test_observation_extracts_timeline_with_duration(self) -> None:
         """일정 정보가 기간과 함께 제약 조건으로 추출되어야 합니다."""
+        # deprecated observe() 사용 - 하위 호환성 테스트
         observation = observe("팀은 3명이고 출시까지는 2개월 정도 남았는데, 요구사항 변경이 많음")
 
         # 일정 관련 제약이 포함되어 있는지 확인 (숫자 2와 개월 포함)

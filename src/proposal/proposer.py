@@ -9,7 +9,7 @@
 
 from dataclasses import dataclass, field
 
-from src.observation.observer import Observation
+from src.observation.schema import ObservationResult
 from src.reasoning.reasoner import Analysis
 
 
@@ -30,7 +30,7 @@ HUMAN_DECISION_STATEMENT = (
 )
 
 
-def propose(observation: Observation, analysis: Analysis) -> Proposal:
+def propose(result: ObservationResult, analysis: Analysis) -> Proposal:
     """
     관찰과 분석 결과를 바탕으로 추천을 생성합니다.
 
@@ -38,7 +38,7 @@ def propose(observation: Observation, analysis: Analysis) -> Proposal:
     항상 근거를 제시하고, 인간이 결정해야 함을 명확히 합니다.
     """
     # 추천 생성
-    if observation.requirements:
+    if result.must_have:
         recommendation = "제시된 요구사항을 바탕으로 검토를 진행하시기 바랍니다."
     else:
         recommendation = "추가 정보가 필요합니다. 요구사항을 더 구체적으로 설명해 주세요."
@@ -54,9 +54,9 @@ def propose(observation: Observation, analysis: Analysis) -> Proposal:
     # 다음 고려사항
     next_considerations: list[str] = []
 
-    # 미확인 정보를 다음 고려사항에 포함
-    for unknown in observation.unknowns:
-        next_considerations.append(f"확인 필요: {unknown}")
+    # 미확인 정보를 다음 고려사항에 포함 (Unknown 객체의 question 사용)
+    for unknown in result.unknowns:
+        next_considerations.append(f"확인 필요: [미확인] {unknown.question}")
 
     # 기본 다음 단계 제안
     next_considerations.append("팀과 함께 트레이드오프를 논의해 보세요.")

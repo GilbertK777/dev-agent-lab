@@ -10,21 +10,12 @@
 
 import sys
 
-from src.observation.observer import Observation, observe, observe_v2
+from src.observation.observer import observe_v2
 from src.observation.schema import ObservationResult
 from src.reasoning.reasoner import Analysis, reason
 from src.proposal.proposer import Proposal, propose
 
 
-def format_output(observation: Observation, analysis: Analysis, proposal: Proposal) -> str:
-    """
-    [Legacy] 분석 결과를 사람이 읽기 쉬운 형식으로 포맷합니다.
-
-    하위 호환성을 위해 유지. 내부적으로 v2 결과를 사용.
-    """
-    # v2 결과 생성
-    result = observe_v2(observation.raw_input)
-    return format_output_v2(result, analysis, proposal)
 
 
 def format_deadline(days: int) -> str:
@@ -173,15 +164,12 @@ def main() -> None:
         print("입력이 없습니다. 분석할 내용을 입력해 주세요.")
         return
 
-    # v2 파이프라인 사용
+    # v2 파이프라인: ObservationResult 단일 타입 사용
     result = observe_v2(user_input)
+    analysis = reason(result)
+    proposal = propose(result, analysis)
 
-    # Legacy observe()도 호출 (Reasoner/Proposer 연동용)
-    observation = observe(user_input)
-    analysis = reason(observation)
-    proposal = propose(observation, analysis)
-
-    # 결과 출력 (v2 포맷)
+    # 결과 출력
     print()
     print(format_output_v2(result, analysis, proposal))
 

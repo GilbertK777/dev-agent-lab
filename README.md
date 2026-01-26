@@ -148,6 +148,43 @@ class ObservationResult:
     extractions: list[ExtractResult]
 ```
 
+### Analysis (Reason 단계 출력)
+
+```python
+@dataclass
+class Analysis:
+    pros: list[str]          # 장점
+    cons: list[str]          # 단점
+    assumptions: list[str]   # 가정
+    constraints: list[str]   # 제약
+    warnings: list[str]      # 경고 (낮은 신뢰도 등)
+```
+
+### Proposal (Propose 단계 출력)
+
+```python
+@dataclass
+class Proposal:
+    recommendation: str          # 추천 내용
+    rationale: str               # 추천 근거
+    next_considerations: list[str]  # 다음 고려사항
+    human_decision_note: str     # "최종 결정은 인간" 고지
+```
+
+---
+
+## Unknowns 자동 생성 키워드
+
+입력에 다음 키워드가 포함되면 해당 질문이 `unknowns`에 자동 추가됩니다:
+
+| 키워드 | 생성되는 질문 |
+|--------|--------------|
+| `레거시`, `legacy` | 레거시 시스템과의 통합이 필요한가요? |
+| `확장`, `scalab`, `scale` | 향후 확장 규모 예상치가 있나요? |
+| `성능`, `performance` | 구체적인 성능 요구사항(응답시간, TPS 등)이 있나요? |
+| `보안`, `security` | 보안 등급이나 인증 요구사항이 있나요? |
+| `마이그레이션`, `migration` | 마이그레이션 전략이나 병행 운영 기간이 정해져 있나요? |
+
 ---
 
 ## 사용 예시
@@ -203,10 +240,14 @@ dev-agent-lab/
 │   │       ├── platform_extractor.py
 │   │       ├── stack_extractor.py
 │   │       └── forbidden_extractor.py
-│   ├── reasoning/
-│   │   └── reasoner.py                # 트레이드오프 분석
+│   ├── reasoning/                     # 판단 단계
+│   │   ├── reasoner.py                # Pros/Cons/Assumptions/Constraints/Warnings 분석
+│   │   └── rules/                     # Rule Engine Lite
+│   │       ├── base.py                # Rule Protocol, RuleContext
+│   │       ├── engine.py              # RuleEngine (규칙 순차 실행)
+│   │       └── budget_rule.py         # BudgetConstraintRule
 │   └── proposal/
-│       └── proposer.py                # 추천 생성
+│       └── proposer.py                # 추천/근거/다음고려사항 생성
 │
 └── tests/
     ├── test_policy.py                 # 정책(헌법) 테스트
@@ -257,6 +298,24 @@ dev-agent-lab/
 ## 핵심 원칙
 
 > 확신이 없을 때는 속도나 완성도보다 **명확성과 설명**을 우선하세요.
+
+---
+
+## v2.0 변경 요약
+
+| 변경 | 설명 |
+|------|------|
+| ObservationResult 단일화 | Reasoning/Proposal이 ObservationResult 타입만 사용 |
+| Rule Engine Lite | Reasoning 단계에 규칙 엔진 도입 (BudgetConstraintRule) |
+| Analysis.warnings | 신뢰도 기반 경고 필드 추가 |
+| Low-confidence 경고 | `confidence < 0.7` → assumptions, `< 0.8` → warnings |
+
+## Roadmap
+
+- [ ] ScopeVolatilityRule (범위 변동성 규칙)
+- [ ] TeamUncertaintyRule (팀 불확실성 규칙)
+- [ ] scope_volatility_score 계산 로직
+- [ ] Reasoning 단위 테스트 추가
 
 ## 라이선스
 

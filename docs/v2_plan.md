@@ -45,7 +45,7 @@
 | Step 2 | platform/stack/forbidden 추출기 추가 | 완료 |
 | Step 2 보완 | evidence 후처리, ambiguity 스케일링, unknowns 템플릿 | 완료 |
 | Step 3 | Constraints 출력 통합, 키워드 기반 Unknowns | 완료 |
-| Step 4 | 문서화 및 최종 검증 | 진행 중 |
+| Step 4 | 문서화 및 최종 검증 | 완료 |
 
 ---
 
@@ -53,16 +53,16 @@
 
 v2.0 완료 조건 체크리스트:
 
-- [ ] pytest 70개 테스트 100% 통과
-- [ ] test_1 ~ test_5 모두 expected와 actual 일치
-- [ ] ambiguity_score 순서: test_5 > test_4 > test_1
-- [ ] Constraints 출력에 플랫폼/스택/금지/운영제약 포함
-- [ ] Unknowns 3개 이상 자동 생성 (도메인 키워드 기반)
-- [ ] Observer에 LLM 호출 없음 (rule-based only)
-- [ ] 모든 출력에 "최종 결정은 사람이 합니다" 문구 포함
-- [ ] docs/v2_plan.md 최종 확정
-- [ ] CLAUDE.md 프로젝트 구조 최신화 (Step 4에서)
+- [x] pytest 72개 테스트 100% 통과
+- [x] test_1 ~ test_5 모두 expected와 actual 일치
+- [x] ambiguity_score 순서: test_5 > test_4 > test_1
+- [x] Constraints 출력에 플랫폼/스택/금지/운영제약 포함
+- [x] Unknowns 3개 이상 자동 생성 (도메인 키워드 기반)
+- [x] Observer에 LLM 호출 없음 (rule-based only)
+- [x] 모든 출력에 "최종 결정은 사람이 합니다" 문구 포함
+- [x] docs/v2_plan.md 최종 확정
+- [x] CLAUDE.md 프로젝트 구조 최신화 (Step 4에서)
 
 ---
 
-*문서 버전: draft-1 | 작성일: 2026-01-26*
+*문서 버전: v2.0-final | 작성일: 2026-01-26*

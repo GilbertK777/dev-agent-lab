@@ -110,7 +110,11 @@ dev-agent-lab/
 │   │
 │   ├── reasoning/                     # 판단 단계
 │   │   ├── __init__.py
-│   │   └── reasoner.py                # Pros/Cons/Assumptions/Constraints 생성
+│   │   ├── reasoner.py                # Pros/Cons/Assumptions/Constraints/Warnings 생성
+│   │   └── rules/                     # Rule Engine Lite
+│   │       ├── base.py                # Rule Protocol, RuleContext
+│   │       ├── engine.py              # RuleEngine (규칙 순차 실행)
+│   │       └── budget_rule.py         # BudgetConstraintRule (예산 제약 규칙)
 │   │
 │   └── proposal/                      # 제안 단계
 │       ├── __init__.py
@@ -124,25 +128,29 @@ dev-agent-lab/
         └── test_results.json          # 테스트 실행 결과
 ```
 
-### 핵심 파이프라인
+### 핵심 파이프라인 (v2)
 
 ```
-사용자 입력 → Normalizer → Extractors → Observer → Reasoner → Proposer → 출력
-                 │              │
-                 │              ├── DeadlineExtractor (일정)
-                 │              ├── TeamExtractor (인원)
-                 │              ├── RequirementsExtractor (Must/Nice)
-                 │              ├── PlatformExtractor (플랫폼)
-                 │              ├── StackExtractor (스택)
-                 │              └── ForbiddenExtractor (금지)
-                 │
-                 └── Lossless 정규화 (형태 정리, 의미 보존)
+사용자 입력 → observe_v2() → reason() → propose() → 출력
+                  │              │
+                  │              └── RuleEngine Lite
+                  │                   ├── BudgetConstraintRule
+                  │                   └── (추가 규칙 확장 가능)
+                  │
+                  ├── Normalizer (Lossless)
+                  └── Extractors
+                       ├── DeadlineExtractor (일정)
+                       ├── TeamExtractor (인원)
+                       ├── RequirementsExtractor (Must/Nice)
+                       ├── PlatformExtractor (플랫폼)
+                       ├── StackExtractor (스택)
+                       └── ForbiddenExtractor (금지)
 ```
 
 - Normalizer는 **형태만 정리**하고 의미는 보존합니다.
 - Extractors는 문맥을 해석하지 않으며, 규칙에 따라 신호만 추출합니다.
 - Observer는 결과를 통합하고 **unknowns / ambiguity**를 계산합니다.
-- Reasoner는 **판단 근거를 설명**합니다.
+- Reasoner는 **RuleEngine Lite**를 통해 규칙 기반 분석을 수행합니다.
 - Proposer는 **결정을 강요하지 않습니다.**
 
 ---
@@ -160,8 +168,34 @@ dev-agent-lab/
 | `stack_extractor.py` | 언어/기술 스택(Python/C#/C++) 추출 |
 | `forbidden_extractor.py` | 금지 항목(예: LLM forbidden) 추출 |
 | `observer.py` | 추출 결과 통합, unknowns 자동 생성, ambiguity 점수 계산 |
-| `reasoner.py` | Pros/Cons/Assumptions/Constraints 분석 템플릿 |
-| `proposer.py` | 추천, 근거, 다음 고려사항, “최종 결정은 인간” 고지 |
+| `reasoner.py` | Pros/Cons/Assumptions/Constraints/Warnings 분석 |
+| `proposer.py` | 추천, 근거, 다음 고려사항, "최종 결정은 인간" 고지 |
+| `rules/base.py` | Rule Protocol, RuleContext 정의 |
+| `rules/engine.py` | RuleEngine (규칙 순차 실행) |
+| `rules/budget_rule.py` | BudgetConstraintRule (예산 제약 규칙) |
+
+---
+
+## (추가) Low-Confidence 경고 정책
+
+추출 결과의 신뢰도(confidence)에 따라 경고를 생성합니다:
+
+| 조건 | 동작 |
+|------|------|
+| `confidence < 0.7` | `Analysis.assumptions`에 구체 경고 (추출기 이름 명시) |
+| `confidence < 0.8` | `Analysis.warnings`에 요약 경고 |
+
+예시:
+- assumptions: `"[주의] 일부 추출 결과(deadline)의 신뢰도가 낮아 확인이 필요합니다."`
+- warnings: `"일부 추출 결과의 신뢰도가 낮습니다. 추가 확인이 필요합니다."`
+
+---
+
+## (추가) 작업 규칙 (diff 기반)
+
+- **diff 기반 작업**: 전체 파일을 읽지 말고, 변경이 필요한 부분만 최소로 수정합니다.
+- **한 커밋 = 한 목적**: 여러 목적의 변경을 하나의 커밋에 섞지 않습니다.
+- **전체 리딩 금지**: 탐색은 필요한 범위만 최소로 수행합니다.
 
 ---
 

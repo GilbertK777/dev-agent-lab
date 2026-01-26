@@ -12,7 +12,7 @@ Observer v2 Pipeline 테스트
 
 import pytest
 
-from src.observation.observer import observe_v2, observe
+from src.observation.observer import observe_v2
 from src.observation.schema import ObservationResult
 
 
@@ -157,24 +157,6 @@ class TestEmptyInput:
         assert len(result.unknowns) > 0
 
 
-class TestLegacyCompatibility:
-    """Legacy observe() 함수 호환성 테스트"""
-
-    def test_legacy_observe_returns_observation(self):
-        """observe()는 Observation 객체 반환"""
-        result = observe("인원은 3명이고 기간은 2개월")
-        # Legacy Observation 클래스의 필드 확인
-        assert hasattr(result, "raw_input")
-        assert hasattr(result, "requirements")
-        assert hasattr(result, "constraints")
-        assert hasattr(result, "unknowns")
-
-    def test_legacy_constraints_format(self):
-        """Legacy constraints 형식 확인"""
-        result = observe("인원은 3명이고 기간은 2개월")
-        # constraints에 [인력], [일정] 태그가 있어야 함
-        constraint_text = " ".join(result.constraints)
-        assert "[인력]" in constraint_text or "[일정]" in constraint_text
 
 
 class TestExtractionConfidence:
@@ -300,15 +282,6 @@ class TestTeamSizeRange:
         assert result.team_size_max is None
 
 
-class TestLegacyTeamRange:
-    """Legacy observe()의 팀 범위 처리 테스트"""
-
-    def test_legacy_range_constraint(self):
-        """Legacy observe()에서 범위가 '확정 필요'로 표시"""
-        result = observe("인원은 2~3명입니다")
-        constraint_text = " ".join(result.constraints)
-        assert "2~3명" in constraint_text
-        assert "확정 필요" in constraint_text
 
 
 class TestFullScenarios:

@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "input_file": "/home/kimsh/projects/dev-agent-lab/tests/fixtures/test_inputs.json",
-    "output_file": "/home/kimsh/projects/dev-agent-lab/tests/fixtures/test_results.json",
-    "timestamp": "2026-01-26T09:57:56.605219",
+    "input_file": "/app/tests/fixtures/test_inputs.json",
+    "output_file": "/app/tests/fixtures/test_results.json",
+    "timestamp": "2026-01-26T02:15:41.262063",
     "total_tests": 5
   },
   "results": [

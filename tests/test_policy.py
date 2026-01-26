@@ -11,10 +11,10 @@ from pathlib import Path
 # src 모듈을 import할 수 있도록 경로 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.observation.observer import observe
+from src.observation.observer import observe_v2 as observe
 from src.reasoning.reasoner import reason
 from src.proposal.proposer import propose
-from src.main import format_output
+from src.main import format_output_v2
 
 
 class TestOutputStructurePolicy:
@@ -25,7 +25,7 @@ class TestOutputStructurePolicy:
         observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
         analysis = reason(observation)
         proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        output = format_output_v2(observation, analysis, proposal)
 
         assert "Pros" in output, "출력에 'Pros' 섹션이 포함되어야 합니다"
 
@@ -34,7 +34,7 @@ class TestOutputStructurePolicy:
         observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
         analysis = reason(observation)
         proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        output = format_output_v2(observation, analysis, proposal)
 
         assert "Cons" in output, "출력에 'Cons' 섹션이 포함되어야 합니다"
 
@@ -43,7 +43,7 @@ class TestOutputStructurePolicy:
         observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
         analysis = reason(observation)
         proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        output = format_output_v2(observation, analysis, proposal)
 
         assert "Assumptions" in output, "출력에 'Assumptions' 섹션이 포함되어야 합니다"
 
@@ -52,7 +52,7 @@ class TestOutputStructurePolicy:
         observation = observe("마이크로서비스 vs 모놀리스 어떤 것을 선택해야 할까요?")
         analysis = reason(observation)
         proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        output = format_output_v2(observation, analysis, proposal)
 
         assert "Constraints" in output, "출력에 'Constraints' 섹션이 포함되어야 합니다"
 
@@ -65,7 +65,7 @@ class TestHumanDecisionPolicy:
         observation = observe("어떤 아키텍처를 선택해야 할까요?")
         analysis = reason(observation)
         proposal = propose(observation, analysis)
-        output = format_output(observation, analysis, proposal)
+        output = format_output_v2(observation, analysis, proposal)
 
         # 인간이 결정한다는 표현이 포함되어 있는지 확인
         human_decision_keywords = ["최종 결정은 인간", "인간이 내려야", "사람이 결정"]
@@ -96,29 +96,31 @@ class TestObservationConstraintExtractionPolicy:
     def test_observation_extracts_team_size_with_number(self) -> None:
         """팀 규모 정보가 인원수와 함께 제약 조건으로 추출되어야 합니다."""
         observation = observe("팀은 3명이고 출시까지는 2개월 정도 남았는데, 요구사항 변경이 많음")
+        analysis = reason(observation)
 
         # 인력 관련 제약이 포함되어 있는지 확인 (숫자 3 포함)
         has_team_constraint = any(
             "인력" in constraint and "3" in constraint
-            for constraint in observation.constraints
+            for constraint in analysis.constraints
         )
 
         assert has_team_constraint, (
-            f"Observation의 constraints에 인력(팀 규모) 관련 제약과 '3명'이 포함되어야 합니다. "
-            f"현재 constraints: {observation.constraints}"
+            f"Analysis의 constraints에 인력(팀 규모) 관련 제약과 '3명'이 포함되어야 합니다. "
+            f"현재 constraints: {analysis.constraints}"
         )
 
     def test_observation_extracts_timeline_with_duration(self) -> None:
         """일정 정보가 기간과 함께 제약 조건으로 추출되어야 합니다."""
         observation = observe("팀은 3명이고 출시까지는 2개월 정도 남았는데, 요구사항 변경이 많음")
+        analysis = reason(observation)
 
         # 일정 관련 제약이 포함되어 있는지 확인 (숫자 2와 개월 포함)
         has_timeline_constraint = any(
             "일정" in constraint and "2" in constraint and "개월" in constraint
-            for constraint in observation.constraints
+            for constraint in analysis.constraints
         )
 
         assert has_timeline_constraint, (
-            f"Observation의 constraints에 일정 관련 제약과 '2개월'이 포함되어야 합니다. "
-            f"현재 constraints: {observation.constraints}"
+            f"Analysis의 constraints에 일정 관련 제약과 '2개월'이 포함되어야 합니다. "
+            f"현재 constraints: {analysis.constraints}"
         )

@@ -151,3 +151,11 @@ class TestLowConfidenceWarningPolicy:
                 f"low_conf: {[e.extractor for e in low_conf_extractions]}, "
                 f"assumptions: {analysis.assumptions}"
             )
+
+    def test_analysis_has_warnings_field(self) -> None:
+        """Analysis에 warnings 필드가 존재해야 합니다."""
+        result = observe_v2("팀 3명, 6개월")
+        analysis = reason(result)
+
+        assert hasattr(analysis, "warnings"), "Analysis에 warnings 필드가 존재해야 합니다"
+        assert isinstance(analysis.warnings, list), "warnings는 list 타입이어야 합니다"

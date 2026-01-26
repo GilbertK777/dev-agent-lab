@@ -26,6 +26,7 @@ class Analysis:
     cons: list[str] = field(default_factory=list)
     assumptions: list[str] = field(default_factory=list)
     constraints: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 # === 불확실성/변동성 키워드 ===
@@ -181,11 +182,18 @@ def reason(result: ObservationResult) -> Analysis:
 
     # NOTE: 예산 제약 추가는 BudgetConstraintRule에서 처리됨
 
+    # === Warnings 생성 (구조화 필드) ===
+    warnings: list[str] = []
+    has_low_confidence = any(e.confidence < 0.80 for e in result.extractions)
+    if has_low_confidence:
+        warnings.append("일부 추출 결과의 신뢰도가 낮습니다. 추가 확인이 필요합니다.")
+
     return Analysis(
         pros=ctx.pros,
         cons=ctx.cons,
         assumptions=ctx.assumptions,
         constraints=ctx.constraints,
+        warnings=warnings,
     )
 
 

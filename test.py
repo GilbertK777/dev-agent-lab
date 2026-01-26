@@ -16,6 +16,7 @@ from pathlib import Path
 from dataclasses import asdict
 
 from src.observation.observer import observe_v2
+from src.reasoning.reasoner import reason
 
 
 # 기본 경로
@@ -44,6 +45,7 @@ def _serialize_extraction_value(value):
 def run_single_test(test_case: dict) -> dict:
     """단일 테스트 케이스 실행"""
     result = observe_v2(test_case["input"])
+    analysis = reason(result)
 
     # ObservationResult를 dict로 변환
     return {
@@ -78,6 +80,7 @@ def run_single_test(test_case: dict) -> dict:
                 }
                 for e in result.extractions
             ],
+            "warnings": analysis.warnings,
         },
     }
 

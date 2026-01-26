@@ -310,6 +310,12 @@ dev-agent-lab/
 | Analysis.warnings | 신뢰도 기반 경고 필드 추가 |
 | Low-confidence 경고 | `confidence < 0.7` → assumptions, `< 0.8` → warnings |
 
+### v2.0 Current Status
+- Version: v1.1
+- Rule-based Agent (LLM not connected yet)
+- Observation: constraint extraction (team size, timeline, volatility) implemented
+- Policy tests passing
+
 ## Roadmap
 
 - [ ] ScopeVolatilityRule (범위 변동성 규칙)

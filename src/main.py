@@ -86,16 +86,6 @@ def format_output_v2(
     # 팀 인원
     lines.append(f"  - 인력: {format_team_size(result)}")
 
-    # 언어 비율
-    lang_ratio_pct = result.lang_mix_ratio * 100
-    if lang_ratio_pct > 70:
-        lang_desc = "영어 중심"
-    elif lang_ratio_pct < 30:
-        lang_desc = "한글 중심"
-    else:
-        lang_desc = "한영 혼합"
-    lines.append(f"  - 언어: {lang_desc} ({lang_ratio_pct:.0f}% 영어)")
-
     # 모호성 점수
     if result.ambiguity_score >= 60:
         ambiguity_desc = "높음 (명확화 필요)"

@@ -219,6 +219,72 @@ def _generate_unknowns(
                 evidence=extraction.evidence
             ))
 
+    # 키워드 기반 추가 unknowns (우선순위 높은 확인 사항)
+    text_lower = text.lower()
+    text_compact = text_lower.replace(" ", "")
+
+    # SECS/GEM 프로토콜
+    if "secs/gem" in text_lower or "secs gem" in text_lower or "secsgem" in text_compact:
+        unknowns.append(Unknown(
+            question="SECS/GEM 연동 대상 장비와 메시지 규격이 확정되었나요?",
+            reason="SECS/GEM은 장비별로 메시지 구조가 다를 수 있어 사전 확인이 필요합니다.",
+            evidence="SECS/GEM integration 언급"
+        ))
+
+    # Traceability / Audit logging
+    if "traceability" in text_lower or "추적" in text_lower:
+        unknowns.append(Unknown(
+            question="Traceability 요구 범위가 어디까지인가요? (제품 이력, 공정 이력, 작업자 이력 등)",
+            reason="추적 범위에 따라 데이터 모델과 저장 구조가 달라집니다.",
+            evidence="traceability 언급"
+        ))
+
+    if "audit" in text_lower or "감사" in text_lower:
+        unknowns.append(Unknown(
+            question="Audit logging 보관 기간과 조회 요구사항이 있나요?",
+            reason="로그 보관 정책에 따라 스토리지 설계가 달라집니다.",
+            evidence="audit logging 언급"
+        ))
+
+    # Role-based access control / 권한
+    if "role-based" in text_lower or "rbac" in text_lower or "권한" in text_lower or "access control" in text_lower:
+        unknowns.append(Unknown(
+            question="운영자 권한 체계(역할/레벨)가 정의되어 있나요?",
+            reason="권한 구조에 따라 인증/인가 설계가 달라집니다.",
+            evidence="role-based access control / 권한 언급"
+        ))
+
+    # No internet / 오프라인 / Offline update
+    if "no internet" in text_lower or "인터넷 불가" in text_lower or "인터넷불가" in text_compact:
+        unknowns.append(Unknown(
+            question="인터넷 불가 환경에서 소프트웨어 배포/업데이트 방식이 정해져 있나요?",
+            reason="오프라인 환경은 배포 파이프라인 설계에 영향을 줍니다.",
+            evidence="no internet / 인터넷 불가 언급"
+        ))
+
+    # Compliance / 보안
+    if "compliance" in text_lower or "컴플라이언스" in text_lower:
+        unknowns.append(Unknown(
+            question="준수해야 할 컴플라이언스 규정(예: FDA, ISO, 내부 보안 정책)이 있나요?",
+            reason="컴플라이언스 요구사항에 따라 문서화 및 검증 절차가 달라집니다.",
+            evidence="compliance 언급"
+        ))
+
+    if ("security" in text_lower or "보안" in text_lower) and "compliance" not in text_lower:
+        unknowns.append(Unknown(
+            question="보안 요구사항(암호화, 접근 제어, 감사 로그 등)이 구체적으로 정의되어 있나요?",
+            reason="보안 요구 수준에 따라 아키텍처가 달라집니다.",
+            evidence="security / 보안 언급"
+        ))
+
+    # WSL2 개발환경
+    if "wsl" in text_lower:
+        unknowns.append(Unknown(
+            question="WSL2 개발환경과 실제 운영환경(Windows) 간 차이로 인한 제약이 있나요?",
+            reason="개발/운영 환경 차이는 CI/CD 및 테스트 전략에 영향을 줍니다.",
+            evidence="WSL2 언급"
+        ))
+
     return unknowns
 
 
@@ -425,6 +491,42 @@ def observe(user_input: str) -> Observation:
             constraints.append(f"[일정] {weeks}주")
         else:
             constraints.append(f"[일정] {days}일")
+
+    # Step2 추출값 반영: 플랫폼/스택/금지
+    if result.platform:
+        constraints.append(f"[플랫폼] {result.platform}")
+
+    if result.language_stack:
+        constraints.append(f"[스택] {'/'.join(result.language_stack)}")
+
+    if result.forbidden:
+        constraints.append(f"[금지] {', '.join(result.forbidden)} (운영)")
+
+    # 운영제약 신호 추출 (텍스트에서 직접)
+    text_lower = user_input.lower()
+    operational_constraints = []
+
+    # WSL2 개발환경
+    if "wsl" in text_lower or "wsl2" in text_lower:
+        operational_constraints.append("WSL2 개발환경")
+
+    # 인터넷/오프라인 제약
+    if "no internet" in text_lower or "인터넷 불가" in text_lower or "인터넷불가" in text_lower:
+        operational_constraints.append("인터넷 불가")
+    if "offline" in text_lower or "오프라인" in text_lower:
+        if "offline update" in text_lower or "오프라인 업데이트" in text_lower:
+            operational_constraints.append("오프라인 업데이트만 가능")
+        elif "인터넷 불가" not in " ".join(operational_constraints):
+            operational_constraints.append("오프라인 환경")
+
+    # 보안/컴플라이언스
+    if "security" in text_lower or "보안" in text_lower:
+        operational_constraints.append("보안 정책 적용")
+    if "compliance" in text_lower or "컴플라이언스" in text_lower:
+        operational_constraints.append("컴플라이언스 요구")
+
+    if operational_constraints:
+        constraints.append(f"[운영제약] {', '.join(operational_constraints)}")
 
     # unknowns 변환
     unknowns_str: list[str] = [

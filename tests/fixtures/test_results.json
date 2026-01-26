@@ -2,8 +2,8 @@
   "metadata": {
     "input_file": "/home/kimsh/projects/dev-agent-lab/tests/fixtures/test_inputs.json",
     "output_file": "/home/kimsh/projects/dev-agent-lab/tests/fixtures/test_results.json",
-    "timestamp": "2026-01-22T16:15:02.336211",
-    "total_tests": 4
+    "timestamp": "2026-01-26T09:57:56.605219",
+    "total_tests": 5
   },
   "results": [
     {
@@ -32,7 +32,7 @@
         "team_size_min": null,
         "team_size_max": null,
         "deadline_days": 180,
-        "ambiguity_score": 0,
+        "ambiguity_score": 3,
         "lang_mix_ratio": 0.5838150289017341,
         "tokens_estimate": 43,
         "must_have": [
@@ -68,11 +68,11 @@
                 "logging",
                 "monitoring UI"
               ],
-              "must_have_evidence": "Must have 기능은 Motion control, TCP/IP communication 이고",
-              "nice_to_have_evidence": "Nice to have 로는 logging, monitoring UI 가 있으면"
+              "must_have_evidence": "Must have 기능은 Motion control, TCP/IP communication",
+              "nice_to_have_evidence": "Nice to have 로 는 logging, monitoring UI"
             },
             "confidence": 0.9,
-            "evidence": "must_have: Must have 기능은 Motion control, TCP/IP communication 이고 | nice_to_have: Nice to have 로는 logging, monitoring UI 가 있으면"
+            "evidence": "must_have: Must have 기능은 Motion control, TCP/IP communication | nice_to_have: Nice to have 로 는 logging, monitoring UI"
           },
           {
             "extractor": "platform",
@@ -114,7 +114,7 @@
         "team_size_min": 2,
         "team_size_max": 3,
         "deadline_days": 365,
-        "ambiguity_score": 30,
+        "ambiguity_score": 44,
         "lang_mix_ratio": 0.6589147286821705,
         "tokens_estimate": 31,
         "must_have": [
@@ -128,7 +128,7 @@
         "nice_to_have": [],
         "unknowns": [
           {
-            "question": "팀 규모를 2명으로 확정할지 3명으로 확정할지 결정되어 있나요?",
+            "question": "팀 규모가 2~3명 범위로 되어 있습니다. 초기 계획 기준 인원을 몇 명으로 확정할까요?",
             "reason": "인원 확정에 따라 일정/범위/역할 분담이 달라집니다.",
             "evidence": "인원은 2~3명"
           }
@@ -179,7 +179,7 @@
         "team_size_min": null,
         "team_size_max": null,
         "deadline_days": 455,
-        "ambiguity_score": 0,
+        "ambiguity_score": 20,
         "lang_mix_ratio": 0.9914893617021276,
         "tokens_estimate": 48,
         "must_have": [
@@ -189,7 +189,13 @@
           "reporting dashboard",
           "export 기능"
         ],
-        "unknowns": [],
+        "unknowns": [
+          {
+            "question": "WSL2 개발환경과 실제 운영환경(Windows) 간 차이로 인한 제약이 있나요?",
+            "reason": "개발/운영 환경 차이는 CI/CD 및 테스트 전략에 영향을 줍니다.",
+            "evidence": "WSL2 언급"
+          }
+        ],
         "extractions": [
           {
             "extractor": "deadline",
@@ -213,11 +219,11 @@
                 "reporting dashboard",
                 "export 기능"
               ],
-              "must_have_evidence": "Core requirement is rule-based analysis (LLM is forbidden).",
-              "nice_to_have_evidence": "Nice features include reporting dashboard and export 기능."
+              "must_have_evidence": "Core requirement is rule based analysis (LLM is forbidden)",
+              "nice_to_have_evidence": "Nice features include reporting dashboard and export 기능"
             },
             "confidence": 0.9,
-            "evidence": "must_have: Core requirement is rule-based analysis (LLM is forbidden). | nice_to_have: Nice features include reporting dashboard and export 기능."
+            "evidence": "must_have: Core requirement is rule based analysis (LLM is forbidden) | nice_to_have: Nice features include reporting dashboard and export 기능"
           },
           {
             "extractor": "platform",
@@ -290,18 +296,47 @@
         "team_size_min": 2,
         "team_size_max": 4,
         "deadline_days": 270,
-        "ambiguity_score": 10,
+        "ambiguity_score": 49,
         "lang_mix_ratio": 0.9825834542815675,
         "tokens_estimate": 135,
         "must_have": [
-          "WSL 2 기반 dev 환경"
+          "Motion control",
+          "TCP/IP communication",
+          "SECS/GEM integration",
+          "recipe management",
+          "alarm handling"
         ],
-        "nice_to_have": [],
+        "nice_to_have": [
+          "MES interface",
+          "remote diagnostics",
+          "automated report generation",
+          "multilingual UI"
+        ],
         "unknowns": [
           {
-            "question": "팀 규모를 2명으로 확정할지 4명으로 확정할지 결정되어 있나요?",
+            "question": "팀 인원은 2~4명 범위이며, 이상적으로는 3명을 선호하는 것으로 보입니다. 초기 기준 인원을 3명으로 확정해도 될까요?",
             "reason": "인원 확정에 따라 일정/범위/역할 분담이 달라집니다.",
             "evidence": "2~4 engineers"
+          },
+          {
+            "question": "SECS/GEM 연동 대상 장비와 메시지 규격이 확정되었나요?",
+            "reason": "SECS/GEM은 장비별로 메시지 구조가 다를 수 있어 사전 확인이 필요합니다.",
+            "evidence": "SECS/GEM integration 언급"
+          },
+          {
+            "question": "인터넷 불가 환경에서 소프트웨어 배포/업데이트 방식이 정해져 있나요?",
+            "reason": "오프라인 환경은 배포 파이프라인 설계에 영향을 줍니다.",
+            "evidence": "no internet / 인터넷 불가 언급"
+          },
+          {
+            "question": "보안 요구사항(암호화, 접근 제어, 감사 로그 등)이 구체적으로 정의되어 있나요?",
+            "reason": "보안 요구 수준에 따라 아키텍처가 달라집니다.",
+            "evidence": "security / 보안 언급"
+          },
+          {
+            "question": "WSL2 개발환경과 실제 운영환경(Windows) 간 차이로 인한 제약이 있나요?",
+            "reason": "개발/운영 환경 차이는 CI/CD 및 테스트 전략에 영향을 줍니다.",
+            "evidence": "WSL2 언급"
           }
         ],
         "extractions": [
@@ -324,14 +359,23 @@
             "extractor": "requirements",
             "value": {
               "must_have": [
-                "WSL 2 기반 dev 환경"
+                "Motion control",
+                "TCP/IP communication",
+                "SECS/GEM integration",
+                "recipe management",
+                "alarm handling"
               ],
-              "nice_to_have": [],
-              "must_have_evidence": "Must have: Motion control, TCP/IP communication, SECS/GEM integration, recipe management, alarm handling. Nice to have: MES interface, remote diagnostics, automated report generation, multilingual UI (Korean/English). Constraints: - Target OS: Windows 10/11 on factory PCs, 일부는 WSL 2 기반 dev 환경.",
-              "nice_to_have_evidence": ""
+              "nice_to_have": [
+                "MES interface",
+                "remote diagnostics",
+                "automated report generation",
+                "multilingual UI"
+              ],
+              "must_have_evidence": "Must have: Motion control, TCP/IP communication, SECS/GEM integration, recipe management, alarm…",
+              "nice_to_have_evidence": "Nice to have: MES interface, remote diagnostics, automated report generation, multilingual UI…"
             },
             "confidence": 0.9,
-            "evidence": "must_have: Must have: Motion control, TCP/IP communication, SECS/GEM integration, recipe management, alarm handling. Nice to have: MES interface, remote diagnostics, automated report generation, multilingual UI (Korean/English). Constraints: - Target OS: Windows 10/11 on factory PCs, 일부는 WSL 2 기반 dev 환경."
+            "evidence": "must_have: Must have: Motion control, TCP/IP communication, SECS/GEM integration, recipe management, alarm… | nice_to_have: Nice to have: MES interface, remote diagnostics, automated report generation, multilingual UI…"
           },
           {
             "extractor": "platform",
@@ -352,10 +396,194 @@
           {
             "extractor": "forbidden",
             "value": [
-              "usage"
+              "LLM"
             ],
             "confidence": 0.9,
-            "evidence": "usage is forbidden"
+            "evidence": "LLM usage is forbidden"
+          }
+        ]
+      }
+    },
+    {
+      "id": "test_5",
+      "name": "Factory control + compliance + mixed sections (고난이도 한/영 혼합)",
+      "input": "프로젝트: Semiconductor equipment control + traceability + monitoring.\n\nTeam / 인력:\n- Core dev team is 2~5 (flexible), ideally 3.\n- UI는 C# WPF 담당 1명 포함(부분 투입 가능).\n\nTimeline / 기간:\n- Overall timeline is 10 months.\n- Start is next month, and requirements are still evolving (scope change likely).\n\nMust have features are:\n- Motion control and TCP/IP communication and SECS/GEM integration\n- Recipe management, alarm handling\n- Audit logging (who/when/what) + traceability report export\n\n필수 기능:\n- 장비 상태 모니터링(Alarm summary) 및 운영자 권한(Role-based access control)\n\nNice to have:\n- MES interface, remote diagnostics, automated report generation\n- Multilingual UI (Korean/English), monitoring dashboard\n\nConstraints:\n- Target OS: Windows 10/11 on factory PCs. Dev is on WSL2.\n- Language stack: Python + C# + C++ (only for low-level driver).\n- LLM usage is forbidden in production runtime (security/compliance). Don't use LLM on production machines.\n- No internet access on production machines; offline update only.\n- Budget is tight, and delivery date is preferred sooner if possible.\n\nAsk:\n1) What should we clarify first?\n2) Which trade-offs are the most risky?",
+      "expected": {
+        "team_size_range": [
+          2,
+          5
+        ],
+        "deadline_days": 300,
+        "must_have": [
+          "Motion control",
+          "TCP/IP communication",
+          "SECS/GEM integration",
+          "Recipe management",
+          "alarm handling",
+          "Audit logging",
+          "traceability report export",
+          "장비 상태 모니터링",
+          "운영자 권한"
+        ],
+        "nice_to_have": [
+          "MES interface",
+          "remote diagnostics",
+          "automated report generation",
+          "Multilingual UI",
+          "monitoring dashboard"
+        ],
+        "platform": "Windows",
+        "language_stack": [
+          "Python",
+          "C#",
+          "C++"
+        ],
+        "forbidden": [
+          "LLM"
+        ],
+        "ambiguity_high": true,
+        "uncertainty_keywords": [
+          "flexible",
+          "evolving",
+          "scope change",
+          "tight",
+          "preferred"
+        ]
+      },
+      "actual": {
+        "team_size": null,
+        "team_size_min": 2,
+        "team_size_max": 5,
+        "deadline_days": 300,
+        "ambiguity_score": 50,
+        "lang_mix_ratio": 0.955607476635514,
+        "tokens_estimate": 175,
+        "must_have": [
+          "Motion control",
+          "TCP/IP communication",
+          "SECS/GEM integration",
+          "Recipe management",
+          "alarm handling",
+          "Audit logging",
+          "traceability report export",
+          "장비 상태 모니터링",
+          "운영자 권한"
+        ],
+        "nice_to_have": [
+          "MES interface",
+          "remote diagnostics",
+          "automated report generation",
+          "Multilingual UI",
+          "monitoring dashboard"
+        ],
+        "unknowns": [
+          {
+            "question": "팀 인원은 2~5명 범위이며, 이상적으로는 3명을 선호하는 것으로 보입니다. 초기 기준 인원을 3명으로 확정해도 될까요?",
+            "reason": "인원 확정에 따라 일정/범위/역할 분담이 달라집니다.",
+            "evidence": "team is 2~5"
+          },
+          {
+            "question": "SECS/GEM 연동 대상 장비와 메시지 규격이 확정되었나요?",
+            "reason": "SECS/GEM은 장비별로 메시지 구조가 다를 수 있어 사전 확인이 필요합니다.",
+            "evidence": "SECS/GEM integration 언급"
+          },
+          {
+            "question": "Traceability 요구 범위가 어디까지인가요? (제품 이력, 공정 이력, 작업자 이력 등)",
+            "reason": "추적 범위에 따라 데이터 모델과 저장 구조가 달라집니다.",
+            "evidence": "traceability 언급"
+          },
+          {
+            "question": "Audit logging 보관 기간과 조회 요구사항이 있나요?",
+            "reason": "로그 보관 정책에 따라 스토리지 설계가 달라집니다.",
+            "evidence": "audit logging 언급"
+          },
+          {
+            "question": "운영자 권한 체계(역할/레벨)가 정의되어 있나요?",
+            "reason": "권한 구조에 따라 인증/인가 설계가 달라집니다.",
+            "evidence": "role-based access control / 권한 언급"
+          },
+          {
+            "question": "인터넷 불가 환경에서 소프트웨어 배포/업데이트 방식이 정해져 있나요?",
+            "reason": "오프라인 환경은 배포 파이프라인 설계에 영향을 줍니다.",
+            "evidence": "no internet / 인터넷 불가 언급"
+          },
+          {
+            "question": "준수해야 할 컴플라이언스 규정(예: FDA, ISO, 내부 보안 정책)이 있나요?",
+            "reason": "컴플라이언스 요구사항에 따라 문서화 및 검증 절차가 달라집니다.",
+            "evidence": "compliance 언급"
+          },
+          {
+            "question": "WSL2 개발환경과 실제 운영환경(Windows) 간 차이로 인한 제약이 있나요?",
+            "reason": "개발/운영 환경 차이는 CI/CD 및 테스트 전략에 영향을 줍니다.",
+            "evidence": "WSL2 언급"
+          }
+        ],
+        "extractions": [
+          {
+            "extractor": "deadline",
+            "value": 300,
+            "confidence": 0.85,
+            "evidence": "10 months"
+          },
+          {
+            "extractor": "team_size",
+            "value": {
+              "min": 2,
+              "max": 5
+            },
+            "confidence": 0.9,
+            "evidence": "team is 2~5"
+          },
+          {
+            "extractor": "requirements",
+            "value": {
+              "must_have": [
+                "Motion control",
+                "TCP/IP communication",
+                "SECS/GEM integration",
+                "Recipe management",
+                "alarm handling",
+                "Audit logging",
+                "traceability report export",
+                "장비 상태 모니터링",
+                "운영자 권한"
+              ],
+              "nice_to_have": [
+                "MES interface",
+                "remote diagnostics",
+                "automated report generation",
+                "Multilingual UI",
+                "monitoring dashboard"
+              ],
+              "must_have_evidence": "Must have features are: Motion control and TCP/IP communication and SECS/GEM integration Recipe… | 필수 기능: 장비 상태 모니터링(Alarm summary) 및 운영자 권한(Role based access control)",
+              "nice_to_have_evidence": "Nice to have: MES interface, remote diagnostics, automated report generation Multilingual UI…"
+            },
+            "confidence": 0.9,
+            "evidence": "must_have: Must have features are: Motion control and TCP/IP communication and SECS/GEM integration Recipe… | 필수 기능: 장비 상태 모니터링(Alarm summary) 및 운영자 권한(Role based access control) | nice_to_have: Nice to have: MES interface, remote diagnostics, automated report generation Multilingual UI…"
+          },
+          {
+            "extractor": "platform",
+            "value": "Windows",
+            "confidence": 0.85,
+            "evidence": "Windows"
+          },
+          {
+            "extractor": "stack",
+            "value": [
+              "Python",
+              "C#",
+              "C++"
+            ],
+            "confidence": 0.9,
+            "evidence": "Python, C#, C++"
+          },
+          {
+            "extractor": "forbidden",
+            "value": [
+              "LLM"
+            ],
+            "confidence": 0.9,
+            "evidence": "LLM usage is forbidden"
           }
         ]
       }

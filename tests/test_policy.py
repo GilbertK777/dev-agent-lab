@@ -129,3 +129,25 @@ class TestObservationConstraintExtractionPolicy:
             f"Observation의 constraints에 일정 관련 제약과 '2개월'이 포함되어야 합니다. "
             f"현재 constraints: {observation.constraints}"
         )
+
+
+class TestLowConfidenceWarningPolicy:
+    """낮은 신뢰도 경고 정책 테스트"""
+
+    def test_low_confidence_warning_in_assumptions(self) -> None:
+        """신뢰도가 낮은 추출 결과가 있으면 Assumptions에 경고가 포함되어야 합니다."""
+        # 낮은 신뢰도를 유발하는 입력 (모호한 일정 표현)
+        result = observe_v2("프로젝트 기간은 대략 반년쯤? 팀은 아마 3명")
+        analysis = reason(result)
+
+        # 낮은 신뢰도 추출이 있는지 확인
+        low_conf_extractions = [e for e in result.extractions if e.confidence < 0.7]
+
+        if low_conf_extractions:
+            # 경고 문구가 assumptions에 포함되어야 함
+            has_warning = any("주의" in a and "신뢰도" in a for a in analysis.assumptions)
+            assert has_warning, (
+                f"낮은 신뢰도 추출이 있으면 assumptions에 경고가 포함되어야 합니다. "
+                f"low_conf: {[e.extractor for e in low_conf_extractions]}, "
+                f"assumptions: {analysis.assumptions}"
+            )

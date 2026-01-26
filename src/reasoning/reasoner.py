@@ -165,6 +165,16 @@ def reason(result: ObservationResult) -> Analysis:
     if _detect_scope_volatility(text):
         ctx.assumptions.append("요구사항 변동에 대응할 수 있는 유연성이 필요합니다.")
 
+    # 낮은 신뢰도 추출 결과 경고
+    low_confidence_extractions = [
+        e for e in result.extractions if e.confidence < 0.7
+    ]
+    if low_confidence_extractions:
+        names = ", ".join(e.extractor for e in low_confidence_extractions)
+        ctx.assumptions.append(
+            f"[주의] 일부 추출 결과({names})의 신뢰도가 낮아 확인이 필요합니다."
+        )
+
     # === Constraints 보강 ===
     if not ctx.constraints:
         ctx.constraints.append("현재 명시된 기술적/비즈니스적 제약이 없습니다.")

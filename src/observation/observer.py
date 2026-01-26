@@ -25,19 +25,6 @@ from src.observation.extractors.stack_extractor import StackExtractor
 from src.observation.extractors.forbidden_extractor import ForbiddenExtractor
 
 
-# === Legacy Observation (하위 호환용) ===
-
-@dataclass
-class Observation:
-    """
-    [Legacy] 사용자 입력에서 추출한 관찰 결과
-
-    v0/v1 호환을 위해 유지. 새 코드는 ObservationResult 사용 권장.
-    """
-    raw_input: str
-    requirements: list[str] = field(default_factory=list)
-    constraints: list[str] = field(default_factory=list)
-    unknowns: list[str] = field(default_factory=list)
 
 
 # === Extractor Registry ===
@@ -62,7 +49,7 @@ UNCERTAINTY_KEYWORDS = [
     "within", "around", "approximately", "about",
     "flexible", "evolving", "changing",
     # 위험 신호
-    "tight", "scope change", "budget tight",
+    "scope change", "budget tight",
     "sooner", "if possible",
     # 한글 불확실 표현
     "아마", "검토", "미정", "tbd", "확인 필요", "논의 필요",
@@ -456,86 +443,3 @@ def observe_v2(user_input: str) -> ObservationResult:
     )
 
 
-def observe(user_input: str) -> Observation:
-    """
-    [Legacy] 하위 호환용 observe 함수
-
-    기존 Reasoner/Proposer가 사용하는 Observation 형식으로 반환.
-    내부적으로는 observe_v2를 사용.
-    """
-    result = observe_v2(user_input)
-
-    # ObservationResult → Observation 변환
-    constraints: list[str] = []
-
-    if result.team_size is not None:
-        constraints.append(f"[인력] 팀 {result.team_size}명")
-    elif result.team_size_min is not None and result.team_size_max is not None:
-        constraints.append(f"[인력] 팀 {result.team_size_min}~{result.team_size_max}명 (확정 필요)")
-
-    if result.deadline_days is not None:
-        # 일수를 적절한 단위로 변환
-        days = result.deadline_days
-        if days >= 365:
-            years = days // 365
-            months = (days % 365) // 30
-            if months > 0:
-                constraints.append(f"[일정] {years}년 {months}개월")
-            else:
-                constraints.append(f"[일정] {years}년")
-        elif days >= 30:
-            months = days // 30
-            constraints.append(f"[일정] {months}개월")
-        elif days >= 7:
-            weeks = days // 7
-            constraints.append(f"[일정] {weeks}주")
-        else:
-            constraints.append(f"[일정] {days}일")
-
-    # Step2 추출값 반영: 플랫폼/스택/금지
-    if result.platform:
-        constraints.append(f"[플랫폼] {result.platform}")
-
-    if result.language_stack:
-        constraints.append(f"[스택] {'/'.join(result.language_stack)}")
-
-    if result.forbidden:
-        constraints.append(f"[금지] {', '.join(result.forbidden)} (운영)")
-
-    # 운영제약 신호 추출 (텍스트에서 직접)
-    text_lower = user_input.lower()
-    operational_constraints = []
-
-    # WSL2 개발환경
-    if "wsl" in text_lower or "wsl2" in text_lower:
-        operational_constraints.append("WSL2 개발환경")
-
-    # 인터넷/오프라인 제약
-    if "no internet" in text_lower or "인터넷 불가" in text_lower or "인터넷불가" in text_lower:
-        operational_constraints.append("인터넷 불가")
-    if "offline" in text_lower or "오프라인" in text_lower:
-        if "offline update" in text_lower or "오프라인 업데이트" in text_lower:
-            operational_constraints.append("오프라인 업데이트만 가능")
-        elif "인터넷 불가" not in " ".join(operational_constraints):
-            operational_constraints.append("오프라인 환경")
-
-    # 보안/컴플라이언스
-    if "security" in text_lower or "보안" in text_lower:
-        operational_constraints.append("보안 정책 적용")
-    if "compliance" in text_lower or "컴플라이언스" in text_lower:
-        operational_constraints.append("컴플라이언스 요구")
-
-    if operational_constraints:
-        constraints.append(f"[운영제약] {', '.join(operational_constraints)}")
-
-    # unknowns 변환
-    unknowns_str: list[str] = [
-        f"[미확인] {u.question}" for u in result.unknowns
-    ]
-
-    return Observation(
-        raw_input=user_input,
-        requirements=result.must_have,
-        constraints=constraints,
-        unknowns=unknowns_str,
-    )

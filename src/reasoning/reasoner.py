@@ -16,6 +16,9 @@ from src.observation.schema import ObservationResult
 from src.reasoning.rules.base import RuleContext
 from src.reasoning.rules.engine import RuleEngine
 from src.reasoning.rules.budget_rule import BudgetConstraintRule
+from src.reasoning.rules.team_size_rule import TeamSizeRule
+from src.reasoning.rules.deadline_rule import DeadlineRule
+from src.reasoning.rules.volatility_rule import VolatilityRule
 
 
 @dataclass
@@ -136,9 +139,12 @@ def reason(result: ObservationResult) -> Analysis:
         ctx.cons.append("요구사항이 변동 중이므로 유연한 아키텍처가 필요합니다.")
         ctx.cons.append("범위 변경 가능성으로 인해 초기 설계 시 여유분 확보가 필요합니다.")
 
-    # === Rule Engine 실행 (예산 제약 규칙) ===
+    # === Rule Engine 실행 ===
     engine = RuleEngine()
     engine.register(BudgetConstraintRule())
+    engine.register(TeamSizeRule())
+    engine.register(DeadlineRule())
+    engine.register(VolatilityRule())
     engine.run(ctx)
 
     # 팀 규모 불확실
